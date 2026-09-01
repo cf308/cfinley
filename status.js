@@ -1,12 +1,4 @@
 (function () {
-  // ---- Configuration: change this to update the location shown site-wide ----
-  var LOCATION = {
-    label: 'CAPE COD, MA', // exact text displayed in the status bar
-    geocodeQuery: 'Cape Cod, Massachusetts', // used to look up coordinates via Open-Meteo
-  };
-  // -----------------------------------------------------------------------
-
-  var GEOCODE_CACHE_KEY = 'cf-status-geocode:' + LOCATION.geocodeQuery;
   var WEATHER_REFRESH_MS = 10 * 60 * 1000;
   var CLOCK_TICK_MS = 30 * 1000;
 
@@ -21,43 +13,10 @@
     return '☁️';
   }
 
-  function getCachedCoords() {
-    try {
-      var raw = localStorage.getItem(GEOCODE_CACHE_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  function setCachedCoords(coords) {
-    try {
-      localStorage.setItem(GEOCODE_CACHE_KEY, JSON.stringify(coords));
-    } catch (e) {
-      // ignore storage failures (private browsing, quota, etc.)
-    }
-  }
-
-  function geocode() {
-    var cached = getCachedCoords();
-    if (cached) return Promise.resolve(cached);
-
-    var url =
-      'https://geocoding-api.open-meteo.com/v1/search?name=' +
-      encodeURIComponent(LOCATION.geocodeQuery) +
-      '&count=1&language=en&format=json';
-
-    return fetch(url)
-      .then(function (r) {
-        return r.ok ? r.json() : Promise.reject(new Error('geocode http ' + r.status));
-      })
-      .then(function (data) {
-        var result = data && data.results && data.results[0];
-        if (!result) return Promise.reject(new Error('no geocoding result'));
-        var coords = { latitude: result.latitude, longitude: result.longitude };
-        setCachedCoords(coords);
-        return coords;
-      });
+  function fetchLocation() {
+    return fetch('/api/location').then(function (r) {
+      return r.ok ? r.json() : Promise.reject(new Error('location http ' + r.status));
+    });
   }
 
   function fetchWeather(coords) {
@@ -93,14 +52,14 @@
     bar.className = 'status-bar';
     page.insertBefore(bar, page.firstChild);
 
-    var state = { timeZone: null, emoji: '', temp: null };
+    var state = { label: '', timeZone: null, emoji: '', temp: null };
     var clockTimer = null;
     var weatherTimer = null;
 
     function render() {
       if (!state.timeZone || state.temp == null) return;
       bar.textContent =
-        LOCATION.label + ' · ' + formatTime(state.timeZone) + ' · ' + state.emoji + ' ' + Math.round(state.temp) + '°F';
+        state.label + ' · ' + formatTime(state.timeZone) + ' · ' + state.emoji + ' ' + Math.round(state.temp) + '°F';
     }
 
     function refreshWeather(coords) {
@@ -120,8 +79,11 @@
         });
     }
 
-    geocode()
-      .then(function (coords) {
+    fetchLocation()
+      .then(function (loc) {
+        state.label = loc.label;
+        var coords = { latitude: loc.latitude, longitude: loc.longitude };
+
         return refreshWeather(coords).then(function () {
           if (!state.timeZone) return Promise.reject(new Error('initial weather fetch failed'));
 

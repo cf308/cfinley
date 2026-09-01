@@ -50,6 +50,22 @@
         </section>
 
         <section class="admin-section">
+          <h2>Site Settings</h2>
+          <form id="location-form" class="admin-form" autocomplete="off">
+            <div class="field">
+              <label for="location-label">Status Bar Label</label>
+              <input type="text" id="location-label" placeholder="e.g. CAPE COD, MA" required>
+            </div>
+            <div class="field">
+              <label for="location-query">Location (for weather lookup)</label>
+              <input type="text" id="location-query" placeholder="e.g. Cape Cod, Massachusetts" required>
+            </div>
+            <button type="submit" class="portal-btn admin-btn">Save Location</button>
+            <p class="portal-message" id="location-message" role="status" aria-live="polite"></p>
+          </form>
+        </section>
+
+        <section class="admin-section">
           <h2>Users</h2>
           <div class="admin-table-wrap">
             <table class="admin-table" id="users-table">
@@ -233,6 +249,36 @@
       await fetch('/api/logout', { method: 'POST' });
       window.location.href = 'index.html';
     });
+
+    document.getElementById('location-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const messageEl = document.getElementById('location-message');
+      messageEl.textContent = '';
+
+      const label = document.getElementById('location-label').value.trim();
+      const geocodeQuery = document.getElementById('location-query').value.trim();
+
+      const res = await fetch('/api/location', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label, geocodeQuery }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        messageEl.textContent = data.error || 'Unable to save location.';
+        return;
+      }
+      messageEl.textContent = 'Saved.';
+    });
+
+    fetch('/api/location')
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((loc) => {
+        document.getElementById('location-label').value = loc.label;
+        document.getElementById('location-query').value = loc.geocodeQuery;
+      })
+      .catch(() => {});
 
     document.getElementById('new-apps').innerHTML = appCheckboxesHtml('new-app-checkbox', []);
 

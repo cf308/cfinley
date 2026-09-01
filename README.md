@@ -15,7 +15,7 @@ Static front end + a small set of Vercel serverless functions for authentication
 - `wordle.html` — Wordle app: daily word puzzle, word fetched once per day from the Wordle API on RapidAPI and cached in Postgres; the guessing game itself runs client-side (requires the `wordle` permission)
 - `privacy.html`, `contact.html` — footer pages
 - `styles.css` — shared styles
-- `status.js` — location/time/weather status bar shown at the top of every page except `portal.html`; uses Open-Meteo only (no key, no account). Change the displayed location by editing the `LOCATION` object at the top of the file.
+- `status.js` — location/time/weather status bar shown at the top of every page except `portal.html`; uses Open-Meteo only (no key, no account). Location is fetched from `/api/location` and editable site-wide from the "Site Settings" section in `/admin.html`.
 - `api/` — serverless functions:
   - `login`, `logout`, `me`, `setup` — auth
   - `users`, `users/[id]` — admin user management
@@ -23,6 +23,7 @@ Static front end + a small set of Vercel serverless functions for authentication
   - `notes`, `notes/[id]` — notepad
   - `hotels` — hotel search (proxies the Booking.com API on RapidAPI; the key stays server-side)
   - `wordle` — daily word (proxies the Wordle API on RapidAPI, cached per day in the `wordle_words` table)
+  - `location` — status bar location: public `GET` (used by `status.js`, including for anonymous visitors on the public pages), admin-only `PATCH` that geocodes the new location via Open-Meteo and stores it in the `settings` table
   - `_db.js`, `_auth.js`, `_session.js`, `_blob.js` — shared helpers (not routes)
 
 ## Apps and permissions
@@ -54,4 +55,4 @@ See `.env.example`.
 - File uploads go through the serverless function body, so they're capped at 4.5MB (Vercel's function body limit). Files are stored with `access: 'public'` in Blob — the URL is unguessable/unlisted but not itself authenticated, so anyone with a direct link can fetch it.
 - The Booking.com free tier on RapidAPI is capped (check your plan's monthly quota — it was 50 requests/month at the time this was built). Each hotel search costs 2 API calls (a destination lookup, then the hotel search), so the app only calls out on explicit form submit, never as-you-type.
 - The homepage and its "Access Portal" framing are unchanged; login is fully functional rather than decorative.
-- The status bar geocodes `LOCATION.geocodeQuery` once (cached in `localStorage`) and refreshes weather every 10 minutes; the clock re-renders every 30 seconds off the cached timezone. If Open-Meteo is unreachable it just removes itself — the rest of the page is unaffected.
+- The status bar's location (display label + coordinates) lives in the `settings` table, set once via geocoding when an admin saves it in `/admin.html` — `status.js` just reads the stored coordinates from `/api/location` on each page load, no client-side geocoding. Weather refreshes every 10 minutes; the clock re-renders every 30 seconds off the cached timezone. If Open-Meteo or `/api/location` is unreachable, the bar just removes itself — the rest of the page is unaffected.
