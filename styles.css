@@ -1,10 +1,12 @@
 :root {
-  --bg: #f7f6f3;
-  --ink: #1c1c1c;
-  --ink-soft: #4a4a4a;
-  --line: #d8d6d0;
-  --navy: #0b1a2b;
-  --navy-hover: #142943;
+  --bg: #0a0b0d;
+  --surface: #16181c;
+  --ink: #ecebe7;
+  --ink-soft: #8b8d92;
+  --line: #292b30;
+  --accent: #ecebe7;
+  --accent-hover: #d8d6cf;
+  --accent-ink: #0a0b0d;
 }
 
 * {
@@ -19,7 +21,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font-family: Georgia, "Times New Roman", Times, serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -43,7 +45,7 @@ body {
 .wordmark {
   font-size: 0.95rem;
   letter-spacing: 0.28em;
-  font-weight: 400;
+  font-weight: 600;
   color: var(--ink);
   text-transform: uppercase;
 }
@@ -76,29 +78,29 @@ body {
   padding: 0.85rem 2.25rem;
   font-family: inherit;
   font-size: 0.82rem;
+  font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   text-decoration: none;
-  color: #f7f6f3;
-  background: var(--navy);
-  border: 1px solid var(--navy);
+  color: var(--accent-ink);
+  background: var(--accent);
+  border: 1px solid var(--accent);
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .btn:hover {
-  background: var(--navy-hover);
-  border-color: var(--navy-hover);
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 .btn:focus-visible {
-  outline: 2px solid var(--navy);
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
 .footer {
   padding: 2rem 1.5rem 2.5rem;
   text-align: center;
-  font-family: Georgia, "Times New Roman", Times, serif;
   font-size: 0.76rem;
   letter-spacing: 0.02em;
   color: var(--ink-soft);
@@ -133,13 +135,14 @@ body {
   width: 100%;
   max-width: 360px;
   padding: 2.75rem 2.25rem;
-  background: #ffffff;
+  background: var(--surface);
   border: 1px solid var(--line);
 }
 
 .portal-wordmark {
   text-align: center;
   font-size: 0.82rem;
+  font-weight: 600;
   letter-spacing: 0.26em;
   text-transform: uppercase;
   margin-bottom: 0.5rem;
@@ -170,7 +173,7 @@ body {
 .field input {
   width: 100%;
   padding: 0.65rem 0.75rem;
-  font-family: Georgia, "Times New Roman", Times, serif;
+  font-family: inherit;
   font-size: 0.95rem;
   color: var(--ink);
   background: var(--bg);
@@ -180,8 +183,8 @@ body {
 
 .field input:focus {
   outline: none;
-  border-color: var(--navy);
-  background: #fff;
+  border-color: var(--accent);
+  background: var(--surface);
 }
 
 .portal-btn {
@@ -190,18 +193,24 @@ body {
   padding: 0.8rem 1rem;
   font-family: inherit;
   font-size: 0.82rem;
+  font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #f7f6f3;
-  background: var(--navy);
-  border: 1px solid var(--navy);
+  color: var(--accent-ink);
+  background: var(--accent);
+  border: 1px solid var(--accent);
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .portal-btn:hover {
-  background: var(--navy-hover);
-  border-color: var(--navy-hover);
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.portal-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .portal-message {
@@ -245,6 +254,7 @@ body {
 
 .doc-wordmark {
   font-size: 0.82rem;
+  font-weight: 600;
   letter-spacing: 0.26em;
   text-transform: uppercase;
   margin-bottom: 2.5rem;
@@ -254,7 +264,7 @@ body {
   font-size: 1.05rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  font-weight: 400;
+  font-weight: 600;
   margin: 0 0 1.75rem;
 }
 
@@ -324,7 +334,7 @@ body {
   font-size: 1.1rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  font-weight: 400;
+  font-weight: 600;
   margin: 0 0 2.5rem;
 }
 
@@ -342,7 +352,7 @@ body {
   font-size: 0.78rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  font-weight: 400;
+  font-weight: 600;
   color: var(--ink-soft);
   margin: 0 0 1.5rem;
 }
@@ -379,7 +389,7 @@ body {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-soft);
-  font-weight: 400;
+  font-weight: 600;
 }
 
 .admin-table td {
@@ -420,7 +430,7 @@ body {
 
 .app-tile {
   display: block;
-  background: #ffffff;
+  background: var(--surface);
   padding: 1.75rem 1.5rem;
   text-decoration: none;
   color: var(--ink);
@@ -539,35 +549,37 @@ td.app-checkbox-group {
 
 .notepad-title-input {
   width: 100%;
-  font-family: Georgia, "Times New Roman", Times, serif;
+  font-family: inherit;
   font-size: 1.05rem;
   padding: 0.5rem 0;
   border: none;
   border-bottom: 1px solid var(--line);
   background: transparent;
+  color: var(--ink);
   margin-bottom: 1rem;
 }
 
 .notepad-title-input:focus {
   outline: none;
-  border-color: var(--navy);
+  border-color: var(--accent);
 }
 
 .notepad-content-input {
   width: 100%;
   min-height: 320px;
-  font-family: Georgia, "Times New Roman", Times, serif;
+  font-family: inherit;
   font-size: 0.92rem;
   line-height: 1.7;
   padding: 0.75rem;
   border: 1px solid var(--line);
-  background: #ffffff;
+  background: var(--surface);
+  color: var(--ink);
   resize: vertical;
 }
 
 .notepad-content-input:focus {
   outline: none;
-  border-color: var(--navy);
+  border-color: var(--accent);
 }
 
 .notepad-editor-actions {
@@ -608,7 +620,7 @@ td.app-checkbox-group {
 }
 
 .hotel-card {
-  background: #ffffff;
+  background: var(--surface);
   display: flex;
   flex-direction: column;
 }
