@@ -8,7 +8,7 @@ Static front end + a small set of Vercel serverless functions for authentication
 - `portal.html` — login screen, posts to `/api/login`
 - `setup.html` — one-time screen to create the first admin account
 - `dashboard.html` — home screen; shows an app tile for each app the signed-in user has access to
-- `admin.html` — admin panel: add users, grant/deny per-app access via checkboxes, toggle admin, reset passwords, delete users
+- `admin.html` — Control Panel: a stat dashboard (users/files/notes/active Life Sim characters), add users, grant/deny per-app access via checkboxes, toggle admin, reset passwords, delete users, see each user's last-active time
 - `files.html` — File Storage app: shared upload/download/delete (requires the `files` permission)
 - `notepad.html` — Notepad app: private per-user notes (requires the `notepad` permission)
 - `hotels.html` — Hotel Search app: search hotels by city via the Booking.com API on RapidAPI (requires the `hotels` permission)
@@ -19,7 +19,7 @@ Static front end + a small set of Vercel serverless functions for authentication
 - `status.js` — location/time/weather status bar shown at the top of every page except `portal.html`; uses Open-Meteo only (no key, no account). Location is fetched from `/api/location` and editable site-wide from the "Site Settings" section in `/admin.html`.
 - `api/` — serverless functions (12 total — exactly at Vercel's Hobby-plan cap of 12 functions per deployment, so adding anything new here requires either consolidating an existing route first or upgrading to Pro; collection+item routes are merged into one file each, and shared helpers live in `lib/` instead of `api/` so they aren't counted as functions themselves). Collection/item routes take the item id as a `?id=` query param (e.g. `/api/users?id=5`) rather than a path segment — Vercel's optional-catch-all filename convention (`[[...id]].js`) is a Next.js-specific routing feature and doesn't reliably work for plain Vercel Serverless Functions, which is what caused the admin user list to silently break after that merge:
   - `login`, `logout`, `me`, `setup` — auth
-  - `users` — admin user management (`/api/users` list/create, `/api/users?id=:id` update/delete)
+  - `users` — admin user management (`/api/users` list/create — the list response also carries the Control Panel's stat dashboard counts and each user's `last_login_at` — `/api/users?id=:id` update/delete)
   - `files` — file storage, backed by Vercel Blob (`/api/files` list/upload, `/api/files?id=:id` delete)
   - `notes` — notepad (`/api/notes` list/create, `/api/notes?id=:id` update/delete)
   - `hotels` — hotel search (proxies the Booking.com API on RapidAPI; the key stays server-side)

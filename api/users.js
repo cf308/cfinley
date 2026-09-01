@@ -21,9 +21,24 @@ async function handleCollection(req, res) {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
     const { rows } = await sql`
-      SELECT id, email, is_admin, permissions, created_at FROM users ORDER BY created_at ASC
+      SELECT id, email, is_admin, permissions, created_at, last_login_at FROM users ORDER BY created_at ASC
     `;
-    res.status(200).json({ users: rows });
+
+    const [{ count: totalFiles }] = (await sql`SELECT COUNT(*)::int AS count FROM files`).rows;
+    const [{ count: totalNotes }] = (await sql`SELECT COUNT(*)::int AS count FROM notes`).rows;
+    const [{ count: totalLifeSim }] = (await sql`SELECT COUNT(*)::int AS count FROM life_sim`).rows;
+    const [{ count: activeLifeSim }] = (await sql`SELECT COUNT(*)::int AS count FROM life_sim WHERE alive = true`).rows;
+
+    res.status(200).json({
+      users: rows,
+      stats: {
+        totalUsers: rows.length,
+        totalFiles,
+        totalNotes,
+        totalLifeSimCharacters: totalLifeSim,
+        activeLifeSimCharacters: activeLifeSim,
+      },
+    });
     return;
   }
 

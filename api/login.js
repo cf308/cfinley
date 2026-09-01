@@ -26,6 +26,8 @@ module.exports = async (req, res) => {
     return;
   }
 
+  await sql`UPDATE users SET last_login_at = now() WHERE id = ${user.id}`;
+
   setSessionCookie(res, user.id);
   res.status(200).json({ ok: true, isAdmin: user.is_admin });
 };
