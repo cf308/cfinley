@@ -766,3 +766,16 @@ td.app-checkbox-group {
   background: #1c1e22;
   color: var(--ink-soft);
 }
+
+/* ---- Status bar (location / time / weather) ---- */
+
+.status-bar {
+  padding: 0.5rem 1rem;
+  text-align: center;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
