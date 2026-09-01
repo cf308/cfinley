@@ -1,4 +1,5 @@
 const { sql, ensureSchema } = require('../lib/_db');
+const { getCurrentUser } = require('../lib/_session');
 
 module.exports = async (req, res) => {
   if (req.method !== 'GET') {
@@ -16,17 +17,29 @@ module.exports = async (req, res) => {
     database = { ok: false, latencyMs: null };
   }
 
-  const integrations = {
-    fileStorage: Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN_STORE_ID),
-    hotelSearch: Boolean(process.env.RAPIDAPI_KEY),
-    wordle: Boolean(process.env.RAPIDAPI_KEY),
-    lifeSim: Boolean(process.env.ANTHROPIC_API_KEY),
+  const integrationChecks = [
+    { name: 'File Storage', ok: Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN_STORE_ID) },
+    { name: 'Hotel Search', ok: Boolean(process.env.RAPIDAPI_KEY) },
+    { name: 'Wordle', ok: Boolean(process.env.RAPIDAPI_KEY) },
+    { name: 'Life Sim', ok: Boolean(process.env.ANTHROPIC_API_KEY) },
+  ];
+
+  const operational = database.ok;
+  const user = await getCurrentUser(req).catch(() => null);
+
+  const body = {
+    operational,
+    checkedAt: new Date().toISOString(),
+    database: { ok: database.ok },
+    authenticated: Boolean(user),
   };
 
-  res.status(200).json({
-    operational: database.ok,
-    checkedAt: new Date().toISOString(),
-    database,
-    integrations,
-  });
+  if (user) {
+    body.database.latencyMs = database.latencyMs;
+    body.services = integrationChecks;
+  } else {
+    body.services = { count: integrationChecks.length, healthy: integrationChecks.filter((s) => s.ok).length };
+  }
+
+  res.status(200).json(body);
 };

@@ -26,7 +26,7 @@ Static front end + a small set of Vercel serverless functions for authentication
   - `wordle` — daily word (proxies the Wordle API on RapidAPI, cached per day in the `wordle_words` table)
   - `location` — status bar location: public `GET` (used by `status.js`, including for anonymous visitors on the public pages), admin-only `PATCH` that geocodes the new location via Open-Meteo and stores it in the `settings` table
   - `lifesim` — Life Sim: calls the Anthropic API (Claude Haiku 4.5) once per year advanced to generate the next event + 3 choices (with optional relationship effects, a new relationship, or an achievement) as JSON; everything else — relationships (spend time/gift/propose/have a child), career (apply/work harder/quit), college enrollment, buying/selling houses and cars, gym/doctor/study — is deterministic server-side logic with no AI call. Saves the character to the `life_sim` table (one row per user, overwritten on restart)
-  - `status` — public, no auth: pings Postgres live (`SELECT 1`, reports latency) and reports which integrations have their env vars set; backs `/server-status.html`
+  - `status` — public (no login required to view the page at all), but response detail depends on whether the request carries a valid session: signed-in visitors get the real picture (DB ping latency, each integration named and whether it's configured); anonymous visitors get only a vague "operational / degraded" read and an unlabeled "N / M nominal" count, so the page doesn't leak what the site actually runs to the public. Backs `/server-status.html`
 - `lib/` — shared helpers imported by the functions above, kept out of `api/` so they don't count against the function limit: `_db.js`, `_auth.js`, `_session.js`, `_blob.js`
 
 ## Apps and permissions
