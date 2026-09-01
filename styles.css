@@ -268,3 +268,142 @@ body {
 .doc a {
   color: var(--ink);
 }
+
+.field-checkbox label {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 0.85rem;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.field-checkbox input {
+  width: auto;
+}
+
+/* ---- Admin ---- */
+
+.admin-main {
+  flex: 1;
+  padding: 3.5rem 1.5rem 5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.admin-wrap {
+  width: 100%;
+  max-width: 780px;
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2.5rem;
+}
+
+.admin-header-actions {
+  display: flex;
+  gap: 1.25rem;
+  font-size: 0.8rem;
+}
+
+.admin-header-actions a {
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+
+.admin-header-actions a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.admin-title {
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 400;
+  margin: 0 0 2.5rem;
+}
+
+.admin-section {
+  margin-bottom: 3rem;
+  padding-bottom: 3rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-section:last-child {
+  border-bottom: none;
+}
+
+.admin-section h2 {
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 400;
+  color: var(--ink-soft);
+  margin: 0 0 1.5rem;
+}
+
+.admin-form {
+  max-width: 420px;
+}
+
+.admin-btn {
+  width: auto;
+  padding: 0.75rem 1.75rem;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 0.75rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.admin-table th {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+.admin-table td {
+  color: var(--ink);
+}
+
+.admin-table input[type="text"],
+.admin-table input[type="password"] {
+  font-family: inherit;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  margin-right: 0.4rem;
+}
+
+.admin-table-actions a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  margin-right: 0.9rem;
+  font-size: 0.8rem;
+}
+
+.admin-table-actions a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}

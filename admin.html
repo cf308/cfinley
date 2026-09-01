@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C Finley — Admin</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page">
+    <main class="admin-main">
+      <div class="admin-wrap" id="content" hidden>
+        <div class="admin-header">
+          <div class="doc-wordmark">C&nbsp;FINLEY</div>
+          <div class="admin-header-actions">
+            <a href="dashboard.html">Resources</a>
+            <a href="#" id="logout-link">Log out</a>
+          </div>
+        </div>
+
+        <h1 class="admin-title">User Administration</h1>
+
+        <section class="admin-section">
+          <h2>Add User</h2>
+          <form id="add-form" class="admin-form" autocomplete="off">
+            <div class="field">
+              <label for="new-email">Email</label>
+              <input type="text" id="new-email" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+            </div>
+            <div class="field">
+              <label for="new-password">Temporary Password</label>
+              <input type="password" id="new-password" autocomplete="off" required>
+            </div>
+            <div class="field">
+              <label for="new-permissions">Permissions (comma-separated)</label>
+              <input type="text" id="new-permissions" placeholder="e.g. reports, filings">
+            </div>
+            <div class="field field-checkbox">
+              <label><input type="checkbox" id="new-is-admin"> Grant admin access</label>
+            </div>
+            <button type="submit" class="portal-btn admin-btn">Add User</button>
+            <p class="portal-message" id="add-message" role="status" aria-live="polite"></p>
+          </form>
+        </section>
+
+        <section class="admin-section">
+          <h2>Users</h2>
+          <div class="admin-table-wrap">
+            <table class="admin-table" id="users-table">
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Admin</th>
+                  <th>Permissions</th>
+                  <th>Created</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="users-tbody"></tbody>
+            </table>
+          </div>
+          <p class="portal-message" id="users-message" role="status" aria-live="polite"></p>
+        </section>
+      </div>
+
+      <p class="portal-message" id="loading">Checking session&hellip;</p>
+    </main>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let users = [];
+
+    function esc(s) {
+      const d = document.createElement('div');
+      d.textContent = s == null ? '' : String(s);
+      return d.innerHTML;
+    }
+
+    function permsToArray(text) {
+      return text
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+
+    async function loadUsers() {
+      const res = await fetch('/api/users');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        document.getElementById('users-message').textContent = data.error || 'Unable to load users.';
+        return;
+      }
+      users = data.users;
+      renderUsers();
+    }
+
+    function renderUsers() {
+      const tbody = document.getElementById('users-tbody');
+      tbody.innerHTML = '';
+
+      users.forEach((u) => {
+        const tr = document.createElement('tr');
+        tr.dataset.id = u.id;
+        tr.innerHTML = `
+          <td>${esc(u.email)}</td>
+          <td>${u.is_admin ? 'Yes' : 'No'}</td>
+          <td>${esc((u.permissions || []).join(', ')) || '&mdash;'}</td>
+          <td>${esc(new Date(u.created_at).toLocaleDateString())}</td>
+          <td class="admin-table-actions">
+            <a href="#" class="edit-link">Edit</a>
+            ${u.id === currentUser.id ? '' : '<a href="#" class="delete-link">Delete</a>'}
+          </td>
+        `;
+        tbody.appendChild(tr);
+
+        tr.querySelector('.edit-link').addEventListener('click', (e) => {
+          e.preventDefault();
+          openEditRow(tr, u);
+        });
+
+        const del = tr.querySelector('.delete-link');
+        if (del) {
+          del.addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (!confirm(`Delete ${u.email}?`)) return;
+            const res = await fetch('/api/users/' + u.id, { method: 'DELETE' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+              document.getElementById('users-message').textContent = data.error || 'Delete failed.';
+              return;
+            }
+            document.getElementById('users-message').textContent = '';
+            loadUsers();
+          });
+        }
+      });
+    }
+
+    function openEditRow(tr, u) {
+      tr.innerHTML = `
+        <td>${esc(u.email)}</td>
+        <td><input type="checkbox" class="edit-is-admin" ${u.is_admin ? 'checked' : ''} ${u.id === currentUser.id ? 'disabled' : ''}></td>
+        <td><input type="text" class="edit-permissions" value="${esc((u.permissions || []).join(', '))}"></td>
+        <td colspan="2">
+          <input type="password" class="edit-password" placeholder="New password (optional)" autocomplete="off">
+          <a href="#" class="save-link">Save</a>
+          <a href="#" class="cancel-link">Cancel</a>
+        </td>
+      `;
+
+      tr.querySelector('.cancel-link').addEventListener('click', (e) => {
+        e.preventDefault();
+        renderUsers();
+      });
+
+      tr.querySelector('.save-link').addEventListener('click', async (e) => {
+        e.preventDefault();
+        const isAdmin = tr.querySelector('.edit-is-admin').checked;
+        const permissions = permsToArray(tr.querySelector('.edit-permissions').value);
+        const password = tr.querySelector('.edit-password').value;
+
+        const body = { isAdmin, permissions };
+        if (password) body.password = password;
+
+        const res = await fetch('/api/users/' + u.id, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          document.getElementById('users-message').textContent = data.error || 'Update failed.';
+          return;
+        }
+        document.getElementById('users-message').textContent = '';
+        loadUsers();
+      });
+    }
+
+    document.getElementById('add-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const messageEl = document.getElementById('add-message');
+      messageEl.textContent = '';
+
+      const email = document.getElementById('new-email').value.trim();
+      const password = document.getElementById('new-password').value;
+      const permissions = permsToArray(document.getElementById('new-permissions').value);
+      const isAdmin = document.getElementById('new-is-admin').checked;
+
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, permissions, isAdmin }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        messageEl.textContent = data.error || 'Unable to add user.';
+        return;
+      }
+
+      e.target.reset();
+      loadUsers();
+    });
+
+    document.getElementById('logout-link').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = 'index.html';
+    });
+
+    fetch('/api/me')
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data) => {
+        if (!data.isAdmin) {
+          window.location.href = 'dashboard.html';
+          return;
+        }
+        currentUser = data;
+        document.getElementById('loading').hidden = true;
+        document.getElementById('content').hidden = false;
+        loadUsers();
+      })
+      .catch(() => {
+        window.location.href = 'portal.html';
+      });
+  </script>
+</body>
+</html>

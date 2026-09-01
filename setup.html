@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C Finley — Setup</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page">
+    <main class="portal-main">
+      <form class="portal-card" id="setup-form" autocomplete="off" hidden>
+        <div class="portal-wordmark">C&nbsp;FINLEY</div>
+        <p class="portal-title">First-Time Setup</p>
+
+        <div class="field">
+          <label for="token">Setup Token</label>
+          <input type="password" id="token" name="token" autocomplete="off">
+        </div>
+
+        <div class="field">
+          <label for="email">Admin Email</label>
+          <input type="text" id="email" name="email" autocomplete="off" autocapitalize="off" spellcheck="false">
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" autocomplete="off">
+        </div>
+
+        <button type="submit" class="portal-btn" id="setup-submit">Create Admin Account</button>
+
+        <p class="portal-message" id="setup-message" role="status" aria-live="polite"></p>
+      </form>
+
+      <p class="portal-message" id="setup-loading">Checking status&hellip;</p>
+    </main>
+
+    <footer class="footer">
+      <a href="portal.html">&larr; Back to Private Access</a>
+    </footer>
+  </div>
+
+  <script>
+    const form = document.getElementById('setup-form');
+    const loading = document.getElementById('setup-loading');
+    const submitBtn = document.getElementById('setup-submit');
+    const messageEl = document.getElementById('setup-message');
+
+    fetch('/api/setup')
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data) => {
+        loading.hidden = true;
+        if (data.needsSetup) {
+          form.hidden = false;
+        } else {
+          messageEl.textContent = 'Setup has already been completed.';
+          messageEl.hidden = false;
+        }
+      })
+      .catch(() => {
+        loading.textContent = 'Unable to reach the server.';
+      });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      messageEl.textContent = '';
+      submitBtn.disabled = true;
+
+      const token = document.getElementById('token').value;
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      try {
+        const res = await fetch('/api/setup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, email, password }),
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          messageEl.textContent = data.error || 'Setup failed.';
+          submitBtn.disabled = false;
+          return;
+        }
+
+        window.location.href = 'admin.html';
+      } catch (err) {
+        messageEl.textContent = 'Unable to reach the server.';
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

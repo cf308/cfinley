@@ -16,8 +16,8 @@
         <p class="portal-title">Private Access</p>
 
         <div class="field">
-          <label for="user-id">Email / User ID</label>
-          <input type="text" id="user-id" name="user-id" autocomplete="off" autocapitalize="off" spellcheck="false">
+          <label for="email">Email / User ID</label>
+          <input type="text" id="email" name="email" autocomplete="off" autocapitalize="off" spellcheck="false">
         </div>
 
         <div class="field">
@@ -25,7 +25,7 @@
           <input type="password" id="password" name="password" autocomplete="off">
         </div>
 
-        <button type="submit" class="portal-btn">Continue</button>
+        <button type="submit" class="portal-btn" id="portal-submit">Continue</button>
 
         <p class="portal-message" id="portal-message" role="status" aria-live="polite"></p>
       </form>
@@ -33,22 +33,53 @@
 
     <footer class="footer">
       <a href="index.html">&larr; Return home</a>
+      <span class="sep" id="setup-sep" hidden>&middot;</span>
+      <a href="setup.html" id="setup-link" hidden>First-time setup</a>
     </footer>
   </div>
 
   <script>
-    // Decorative only. Nothing entered here is transmitted, stored, or
-    // validated in any way — this form has no backend.
-    const messages = [
-      "External access unavailable.",
-      "This resource is not available from this network."
-    ];
+    const form = document.getElementById('portal-form');
+    const submitBtn = document.getElementById('portal-submit');
+    const messageEl = document.getElementById('portal-message');
 
-    document.getElementById('portal-form').addEventListener('submit', function (e) {
+    fetch('/api/setup')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data && data.needsSetup) {
+          document.getElementById('setup-link').hidden = false;
+          document.getElementById('setup-sep').hidden = false;
+        }
+      })
+      .catch(() => {});
+
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const el = document.getElementById('portal-message');
-      const msg = messages[Math.floor(Math.random() * messages.length)];
-      el.textContent = msg;
+      messageEl.textContent = '';
+      submitBtn.disabled = true;
+
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          messageEl.textContent = data.error || 'This resource is not available from this network.';
+          submitBtn.disabled = false;
+          return;
+        }
+
+        window.location.href = data.isAdmin ? 'admin.html' : 'dashboard.html';
+      } catch (err) {
+        messageEl.textContent = 'External access unavailable.';
+        submitBtn.disabled = false;
+      }
     });
   </script>
 </body>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C Finley — Resources</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page">
+    <main class="doc-main">
+      <div class="doc" id="content" hidden>
+        <div class="doc-wordmark">C&nbsp;FINLEY</div>
+        <h1>Internal Resources</h1>
+        <p>Signed in as <strong id="user-email"></strong>.</p>
+        <p>Assigned permissions: <span id="user-perms"></span></p>
+        <p id="admin-link-wrap" hidden><a href="admin.html">Open Admin Panel &rarr;</a></p>
+        <p><a href="#" id="logout-link">Log out</a></p>
+      </div>
+      <p class="portal-message" id="loading">Checking session&hellip;</p>
+    </main>
+  </div>
+
+  <script>
+    fetch('/api/me')
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data) => {
+        document.getElementById('loading').hidden = true;
+        document.getElementById('user-email').textContent = data.email;
+        document.getElementById('user-perms').textContent =
+          data.permissions && data.permissions.length ? data.permissions.join(', ') : 'None assigned';
+        if (data.isAdmin) {
+          document.getElementById('admin-link-wrap').hidden = false;
+        }
+        document.getElementById('content').hidden = false;
+      })
+      .catch(() => {
+        window.location.href = 'portal.html';
+      });
+
+    document.getElementById('logout-link').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = 'index.html';
+    });
+  </script>
+</body>
+</html>
