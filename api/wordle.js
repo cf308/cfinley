@@ -58,6 +58,7 @@ module.exports = async (req, res) => {
 
     res.status(200).json({ date: today, word });
   } catch (err) {
-    res.status(502).json({ error: 'Unable to reach the Wordle provider.' });
+    console.error('Wordle fetch failed:', err);
+    res.status(502).json({ error: 'Unable to reach the Wordle provider.', detail: String(err && err.message) });
   }
 };
