@@ -13,10 +13,11 @@ Static front end + a small set of Vercel serverless functions for authentication
 - `notepad.html` — Notepad app: private per-user notes (requires the `notepad` permission)
 - `hotels.html` — Hotel Search app: search hotels by city via the Booking.com API on RapidAPI (requires the `hotels` permission)
 - `wordle.html` — Wordle app: daily word puzzle, word fetched once per day from the Wordle API on RapidAPI and cached in Postgres; the guessing game itself runs client-side (requires the `wordle` permission)
+- `lifesim.html` — Life Sim app: single-player, AI-driven BitLife-style life simulator (requires the `lifesim` permission)
 - `privacy.html`, `contact.html` — footer pages
 - `styles.css` — shared styles
 - `status.js` — location/time/weather status bar shown at the top of every page except `portal.html`; uses Open-Meteo only (no key, no account). Location is fetched from `/api/location` and editable site-wide from the "Site Settings" section in `/admin.html`.
-- `api/` — serverless functions (10 total; Vercel's Hobby plan caps a deployment at 12, so collection+item routes are merged into one optional-catch-all file each rather than split, and shared helpers live in `lib/` instead of `api/` so they aren't counted as functions themselves):
+- `api/` — serverless functions (11 total; Vercel's Hobby plan caps a deployment at 12, so collection+item routes are merged into one optional-catch-all file each rather than split, and shared helpers live in `lib/` instead of `api/` so they aren't counted as functions themselves — there's room for exactly one more function before this needs revisiting):
   - `login`, `logout`, `me`, `setup` — auth
   - `users/[[...params]]` — admin user management (`/api/users` list/create, `/api/users/:id` update/delete)
   - `files/[[...params]]` — file storage, backed by Vercel Blob (`/api/files` list/upload, `/api/files/:id` delete)
@@ -24,20 +25,22 @@ Static front end + a small set of Vercel serverless functions for authentication
   - `hotels` — hotel search (proxies the Booking.com API on RapidAPI; the key stays server-side)
   - `wordle` — daily word (proxies the Wordle API on RapidAPI, cached per day in the `wordle_words` table)
   - `location` — status bar location: public `GET` (used by `status.js`, including for anonymous visitors on the public pages), admin-only `PATCH` that geocodes the new location via Open-Meteo and stores it in the `settings` table
+  - `lifesim` — Life Sim: calls the Anthropic API (Claude Haiku 4.5) each turn to generate the next life event + 3 choices as JSON, applies the chosen choice's stat deltas, and saves the character to the `life_sim` table (one row per user, overwritten on restart)
 - `lib/` — shared helpers imported by the functions above, kept out of `api/` so they don't count against the function limit: `_db.js`, `_auth.js`, `_session.js`, `_blob.js`
 
 ## Apps and permissions
 
-Each app is gated by a permission id stored per-user (`permissions text[]` on the `users` table): `files`, `notepad`, `hotels`, `wordle`, and `adsb` (reserved for a future ADS-B Exchange integration — the tile shows on the home screen as "Coming soon" and isn't wired to a page yet). Admins implicitly have access to every app regardless of their permission list. Grant/revoke access per user from the checkboxes in `/admin.html`; changes apply immediately since permissions are re-read from the database on every request, not cached in the session.
+Each app is gated by a permission id stored per-user (`permissions text[]` on the `users` table): `files`, `notepad`, `hotels`, `wordle`, `lifesim`, and `adsb` (reserved for a future ADS-B Exchange integration — the tile shows on the home screen as "Coming soon" and isn't wired to a page yet). Admins implicitly have access to every app regardless of their permission list. Grant/revoke access per user from the checkboxes in `/admin.html`; changes apply immediately since permissions are re-read from the database on every request, not cached in the session.
 
 ## Requirements
 
 - A Postgres database attached to the Vercel project (Storage → Postgres, any provider — the code uses the plain `pg` driver against whatever `POSTGRES_URL` points to, pooled or direct).
 - A Blob store attached to the Vercel project (Storage → Blob), for the File Storage app. Depending on the store type this sets either `BLOB_READ_WRITE_TOKEN` or a store id + OIDC-based auth automatically — see `api/_blob.js`.
-- Three environment variables, set in the Vercel project before your first deploy:
+- Four environment variables, set in the Vercel project before your first deploy:
   - `SESSION_SECRET` — long random string used to sign session cookies (e.g. `openssl rand -base64 48`)
   - `SETUP_TOKEN` — one-time token required to create the first admin account; without it, `/setup.html` refuses to create anyone
   - `RAPIDAPI_KEY` — your RapidAPI key, subscribed to the `booking-com15` and `wordle-api3` APIs, for the Hotel Search and Wordle apps
+  - `ANTHROPIC_API_KEY` — your Anthropic API key (from console.anthropic.com, billing required — no free tier) for the Life Sim app
 
 See `.env.example`.
 
@@ -56,3 +59,4 @@ See `.env.example`.
 - The Booking.com free tier on RapidAPI is capped (check your plan's monthly quota — it was 50 requests/month at the time this was built). Each hotel search costs 2 API calls (a destination lookup, then the hotel search), so the app only calls out on explicit form submit, never as-you-type.
 - The homepage and its "Access Portal" framing are unchanged; login is fully functional rather than decorative.
 - The status bar's location (display label + coordinates) lives in the `settings` table, set once via geocoding when an admin saves it in `/admin.html` — `status.js` just reads the stored coordinates from `/api/location` on each page load, no client-side geocoding. Weather refreshes every 10 minutes; the clock re-renders every 30 seconds off the cached timezone. If Open-Meteo or `/api/location` is unreachable, the bar just removes itself — the rest of the page is unaffected.
+- Life Sim spends one Anthropic API call per turn (starting a life, or advancing a year) — real, ongoing cost, not a free tier. Each character is a single row in `life_sim`; starting a new life overwrites the previous one rather than keeping multiple saves.

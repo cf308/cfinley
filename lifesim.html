@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C Finley — Life Sim</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="status.js" defer></script>
+</head>
+<body>
+  <div class="page">
+    <main class="admin-main">
+      <div class="admin-wrap lifesim-wrap" id="content" hidden>
+        <div class="admin-header">
+          <div class="doc-wordmark">C&nbsp;FINLEY</div>
+          <div class="admin-header-actions">
+            <a href="dashboard.html">Home</a>
+            <a href="#" id="logout-link">Log out</a>
+          </div>
+        </div>
+
+        <h1 class="admin-title">Life Sim</h1>
+
+        <div id="start-screen">
+          <form id="start-form" class="admin-form">
+            <div class="field">
+              <label for="char-name">Name</label>
+              <input type="text" id="char-name" placeholder="e.g. Alex" maxlength="40">
+            </div>
+            <button type="submit" class="portal-btn admin-btn" id="start-btn">Begin Life</button>
+            <p class="portal-message" id="start-message" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+
+        <div id="game-screen" hidden>
+          <div class="lifesim-stats" id="lifesim-stats"></div>
+
+          <div class="lifesim-narrative" id="lifesim-narrative"></div>
+
+          <div class="lifesim-choices" id="lifesim-choices"></div>
+
+          <p class="portal-message" id="game-message" role="status" aria-live="polite"></p>
+        </div>
+
+        <div id="death-screen" hidden>
+          <p class="lifesim-death-text" id="death-text"></p>
+          <button type="button" class="portal-btn admin-btn" id="restart-btn">Start New Life</button>
+        </div>
+      </div>
+
+      <p class="portal-message" id="loading">Checking session&hellip;</p>
+    </main>
+  </div>
+
+  <script>
+    let busy = false;
+
+    function esc(s) {
+      const d = document.createElement('div');
+      d.textContent = s == null ? '' : String(s);
+      return d.innerHTML;
+    }
+
+    function setBusy(v) {
+      busy = v;
+      document.querySelectorAll('#start-btn, .lifesim-choice-btn, #restart-btn').forEach((el) => {
+        el.disabled = v;
+      });
+    }
+
+    function renderStats(stats) {
+      const el = document.getElementById('lifesim-stats');
+      const labels = { health: 'Health', happiness: 'Happiness', smarts: 'Smarts', looks: 'Looks', money: 'Money', relationships: 'Relationships' };
+      el.innerHTML = Object.keys(labels)
+        .map((k) => {
+          const value = k === 'money' ? '$' + stats[k].toLocaleString() : stats[k];
+          return `<div class="lifesim-stat"><div class="lifesim-stat-label">${labels[k]}</div><div class="lifesim-stat-value">${esc(value)}</div></div>`;
+        })
+        .join('');
+    }
+
+    function renderGame(life) {
+      document.getElementById('start-screen').hidden = true;
+
+      if (!life.alive) {
+        document.getElementById('game-screen').hidden = true;
+        document.getElementById('death-screen').hidden = false;
+        document.getElementById('death-text').textContent =
+          `${life.name} died at age ${life.age}. ${life.history.length ? life.history[life.history.length - 1].narrative : ''}`;
+        return;
+      }
+
+      document.getElementById('death-screen').hidden = true;
+      document.getElementById('game-screen').hidden = false;
+
+      renderStats(life.stats);
+
+      const narrativeEl = document.getElementById('lifesim-narrative');
+      const event = life.pendingEvent;
+      narrativeEl.innerHTML = `<div class="lifesim-age">Age ${life.age}</div><p>${esc(event ? event.narrative : '')}</p>`;
+
+      const choicesEl = document.getElementById('lifesim-choices');
+      choicesEl.innerHTML = '';
+      (event ? event.choices : []).forEach((choice, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'portal-btn admin-btn lifesim-choice-btn';
+        btn.textContent = choice.text;
+        btn.addEventListener('click', () => choose(i));
+        choicesEl.appendChild(btn);
+      });
+    }
+
+    async function loadLife() {
+      const res = await fetch('/api/lifesim');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return;
+
+      if (data.life) {
+        renderGame(data.life);
+      }
+    }
+
+    document.getElementById('start-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (busy) return;
+      setBusy(true);
+
+      const messageEl = document.getElementById('start-message');
+      messageEl.textContent = 'Generating your life…';
+
+      const name = document.getElementById('char-name').value.trim();
+
+      try {
+        const res = await fetch('/api/lifesim', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'start', name }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          messageEl.textContent = data.error || 'Unable to start.';
+          setBusy(false);
+          return;
+        }
+        messageEl.textContent = '';
+        setBusy(false);
+        renderGame(data.life);
+      } catch (err) {
+        messageEl.textContent = 'Unable to start.';
+        setBusy(false);
+      }
+    });
+
+    async function choose(index) {
+      if (busy) return;
+      setBusy(true);
+      const messageEl = document.getElementById('game-message');
+      messageEl.textContent = 'Living it out…';
+
+      try {
+        const res = await fetch('/api/lifesim', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'choose', choiceIndex: index }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          messageEl.textContent = data.error || 'Something went wrong.';
+          setBusy(false);
+          return;
+        }
+        messageEl.textContent = '';
+        setBusy(false);
+        renderGame(data.life);
+      } catch (err) {
+        messageEl.textContent = 'Something went wrong.';
+        setBusy(false);
+      }
+    }
+
+    document.getElementById('restart-btn').addEventListener('click', () => {
+      document.getElementById('death-screen').hidden = true;
+      document.getElementById('start-screen').hidden = false;
+      document.getElementById('char-name').value = '';
+    });
+
+    document.getElementById('logout-link').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = 'index.html';
+    });
+
+    fetch('/api/me')
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data) => {
+        if (!data.isAdmin && !(data.permissions || []).includes('lifesim')) {
+          window.location.href = 'dashboard.html';
+          return Promise.reject('no-access');
+        }
+        document.getElementById('loading').hidden = true;
+        document.getElementById('content').hidden = false;
+        return loadLife();
+      })
+      .catch((err) => {
+        if (err === 'no-access') return;
+        window.location.href = 'portal.html';
+      });
+  </script>
+  <script
+    src="https://assistloop.ai/assistloop-widget.js"
+    defer
+    onload="window.AssistLoopWidget && window.AssistLoopWidget.init({ agentId: 'dff24e88-a711-47ff-97f6-31c7b0dbaa6d' })"
+  ></script>
+</body>
+</html>
