@@ -1,4 +1,4 @@
-const { put } = require('@vercel/blob');
+const { putFile } = require('../_blob');
 const { sql, ensureSchema } = require('../_db');
 const { getCurrentUser, hasApp } = require('../_session');
 
@@ -50,7 +50,7 @@ module.exports = async (req, res) => {
       return;
     }
 
-    const blob = await put(filename, buffer, { access: 'public', addRandomSuffix: true });
+    const blob = await putFile(filename, buffer, { access: 'public', addRandomSuffix: true });
 
     const inserted = await sql`
       INSERT INTO files (filename, blob_url, size, uploaded_by)

@@ -1,4 +1,4 @@
-const { del } = require('@vercel/blob');
+const { delFile } = require('../_blob');
 const { sql, ensureSchema } = require('../_db');
 const { getCurrentUser, hasApp } = require('../_session');
 
@@ -33,7 +33,7 @@ module.exports = async (req, res) => {
       return;
     }
 
-    await del(file.blob_url);
+    await delFile(file.blob_url);
     await sql`DELETE FROM files WHERE id = ${id}`;
     res.status(200).json({ ok: true });
     return;
