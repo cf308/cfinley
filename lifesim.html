@@ -37,19 +37,46 @@
           </form>
         </div>
 
-        <div id="game-screen" hidden>
-          <div class="lifesim-stats" id="lifesim-stats"></div>
-
-          <div class="lifesim-narrative" id="lifesim-narrative"></div>
-
-          <div class="lifesim-choices" id="lifesim-choices"></div>
-
-          <p class="portal-message" id="game-message" role="status" aria-live="polite"></p>
-        </div>
-
         <div id="death-screen" hidden>
           <p class="lifesim-death-text" id="death-text"></p>
+          <div id="death-achievements" class="lifesim-achievement-list"></div>
           <button type="button" class="portal-btn admin-btn" id="restart-btn">Start New Life</button>
+        </div>
+
+        <div id="game-screen" hidden>
+          <div class="lifesim-topline" id="lifesim-topline"></div>
+          <div class="lifesim-stats" id="lifesim-stats"></div>
+
+          <div class="lifesim-tabs" id="lifesim-tabs">
+            <button type="button" class="lifesim-tab active" data-tab="story">Story</button>
+            <button type="button" class="lifesim-tab" data-tab="relationships">Relationships</button>
+            <button type="button" class="lifesim-tab" data-tab="career">Career</button>
+            <button type="button" class="lifesim-tab" data-tab="assets">Assets</button>
+            <button type="button" class="lifesim-tab" data-tab="activities">Activities</button>
+          </div>
+
+          <p class="portal-message" id="game-message" role="status" aria-live="polite"></p>
+
+          <div class="lifesim-panel" id="panel-story">
+            <div class="lifesim-narrative" id="lifesim-narrative"></div>
+            <div class="lifesim-choices" id="lifesim-choices"></div>
+          </div>
+
+          <div class="lifesim-panel" id="panel-relationships" hidden>
+            <div id="relationships-list"></div>
+          </div>
+
+          <div class="lifesim-panel" id="panel-career" hidden>
+            <div id="career-panel"></div>
+          </div>
+
+          <div class="lifesim-panel" id="panel-assets" hidden>
+            <div id="assets-panel"></div>
+          </div>
+
+          <div class="lifesim-panel" id="panel-activities" hidden>
+            <div id="activities-panel"></div>
+          </div>
         </div>
       </div>
 
@@ -58,7 +85,26 @@
   </div>
 
   <script>
+    let life = null;
     let busy = false;
+    let activeTab = 'story';
+
+    const ASSET_CATALOG = {
+      car: [
+        { name: 'Used Sedan', price: 4000 },
+        { name: 'Compact Hatchback', price: 9000 },
+        { name: 'Midsize SUV', price: 22000 },
+        { name: 'Luxury Sedan', price: 55000 },
+        { name: 'Sports Car', price: 95000 },
+      ],
+      house: [
+        { name: 'Studio Apartment', price: 60000 },
+        { name: 'Starter Home', price: 150000 },
+        { name: 'Suburban House', price: 320000 },
+        { name: 'Luxury Condo', price: 600000 },
+        { name: 'Estate', price: 1500000 },
+      ],
+    };
 
     function esc(s) {
       const d = document.createElement('div');
@@ -66,129 +112,348 @@
       return d.innerHTML;
     }
 
+    function money(n) {
+      return '$' + Math.round(n).toLocaleString();
+    }
+
     function setBusy(v) {
       busy = v;
-      document.querySelectorAll('#start-btn, .lifesim-choice-btn, #restart-btn').forEach((el) => {
-        el.disabled = v;
+      document.querySelectorAll('button').forEach((el) => {
+        if (el.id !== 'logout-link') el.disabled = v;
       });
     }
 
-    function renderStats(stats) {
-      const el = document.getElementById('lifesim-stats');
-      const labels = { health: 'Health', happiness: 'Happiness', smarts: 'Smarts', looks: 'Looks', money: 'Money', relationships: 'Relationships' };
-      el.innerHTML = Object.keys(labels)
-        .map((k) => {
-          const value = k === 'money' ? '$' + stats[k].toLocaleString() : stats[k];
-          return `<div class="lifesim-stat"><div class="lifesim-stat-label">${labels[k]}</div><div class="lifesim-stat-value">${esc(value)}</div></div>`;
-        })
-        .join('');
-    }
+    async function call(action, extra) {
+      if (busy) return null;
+      setBusy(true);
+      const messageEl = document.getElementById('game-message') || document.getElementById('start-message');
+      if (messageEl) messageEl.textContent = '';
 
-    function renderGame(life) {
-      document.getElementById('start-screen').hidden = true;
-
-      if (!life.alive) {
-        document.getElementById('game-screen').hidden = true;
-        document.getElementById('death-screen').hidden = false;
-        document.getElementById('death-text').textContent =
-          `${life.name} died at age ${life.age}. ${life.history.length ? life.history[life.history.length - 1].narrative : ''}`;
-        return;
-      }
-
-      document.getElementById('death-screen').hidden = true;
-      document.getElementById('game-screen').hidden = false;
-
-      renderStats(life.stats);
-
-      const narrativeEl = document.getElementById('lifesim-narrative');
-      const event = life.pendingEvent;
-      narrativeEl.innerHTML = `<div class="lifesim-age">Age ${life.age}</div><p>${esc(event ? event.narrative : '')}</p>`;
-
-      const choicesEl = document.getElementById('lifesim-choices');
-      choicesEl.innerHTML = '';
-      (event ? event.choices : []).forEach((choice, i) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'portal-btn admin-btn lifesim-choice-btn';
-        btn.textContent = choice.text;
-        btn.addEventListener('click', () => choose(i));
-        choicesEl.appendChild(btn);
-      });
-    }
-
-    async function loadLife() {
-      const res = await fetch('/api/lifesim');
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) return;
-
-      if (data.life) {
-        renderGame(data.life);
+      try {
+        const res = await fetch('/api/lifesim', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, ...extra }),
+        });
+        const data = await res.json().catch(() => ({}));
+        setBusy(false);
+        if (!res.ok) {
+          if (messageEl) messageEl.textContent = data.error || 'Something went wrong.';
+          if (data.life) render(data.life);
+          return null;
+        }
+        return data.life;
+      } catch (err) {
+        setBusy(false);
+        if (messageEl) messageEl.textContent = 'Something went wrong.';
+        return null;
       }
     }
 
     document.getElementById('start-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (busy) return;
-      setBusy(true);
-
-      const messageEl = document.getElementById('start-message');
-      messageEl.textContent = 'Generating your life…';
-
+      document.getElementById('start-message').textContent = 'Generating your life…';
       const name = document.getElementById('char-name').value.trim();
-
-      try {
-        const res = await fetch('/api/lifesim', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'start', name }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          messageEl.textContent = data.error || 'Unable to start.';
-          setBusy(false);
-          return;
-        }
-        messageEl.textContent = '';
-        setBusy(false);
-        renderGame(data.life);
-      } catch (err) {
-        messageEl.textContent = 'Unable to start.';
-        setBusy(false);
-      }
+      const result = await call('start', { name });
+      if (result) render(result);
     });
-
-    async function choose(index) {
-      if (busy) return;
-      setBusy(true);
-      const messageEl = document.getElementById('game-message');
-      messageEl.textContent = 'Living it out…';
-
-      try {
-        const res = await fetch('/api/lifesim', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'choose', choiceIndex: index }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          messageEl.textContent = data.error || 'Something went wrong.';
-          setBusy(false);
-          return;
-        }
-        messageEl.textContent = '';
-        setBusy(false);
-        renderGame(data.life);
-      } catch (err) {
-        messageEl.textContent = 'Something went wrong.';
-        setBusy(false);
-      }
-    }
 
     document.getElementById('restart-btn').addEventListener('click', () => {
       document.getElementById('death-screen').hidden = true;
       document.getElementById('start-screen').hidden = false;
       document.getElementById('char-name').value = '';
     });
+
+    document.getElementById('lifesim-tabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('.lifesim-tab');
+      if (!btn) return;
+      activeTab = btn.dataset.tab;
+      renderTabs();
+    });
+
+    function renderTabs() {
+      document.querySelectorAll('.lifesim-tab').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.tab === activeTab);
+      });
+      ['story', 'relationships', 'career', 'assets', 'activities'].forEach((tab) => {
+        document.getElementById('panel-' + tab).hidden = tab !== activeTab;
+      });
+    }
+
+    function render(newLife) {
+      life = newLife;
+      document.getElementById('start-screen').hidden = true;
+
+      if (!life.alive) {
+        document.getElementById('game-screen').hidden = true;
+        document.getElementById('death-screen').hidden = false;
+        document.getElementById('death-text').textContent =
+          `${life.name} died at age ${life.age}. ${life.causeOfDeath || ''}`;
+        document.getElementById('death-achievements').innerHTML = life.achievements.length
+          ? 'Achievements: ' + life.achievements.map((a) => esc(a)).join(', ')
+          : '';
+        return;
+      }
+
+      document.getElementById('death-screen').hidden = true;
+      document.getElementById('game-screen').hidden = false;
+
+      renderTopline();
+      renderStats();
+      renderStory();
+      renderRelationships();
+      renderCareer();
+      renderAssets();
+      renderActivities();
+      renderTabs();
+    }
+
+    function renderTopline() {
+      const career = life.career ? life.career.title : 'Unemployed';
+      const edu =
+        life.education.collegeStatus === 'graduated'
+          ? 'College Graduate'
+          : life.education.collegeStatus === 'enrolled'
+          ? `College (${life.education.collegeYearsRemaining} yr left)`
+          : life.education.highSchoolGraduated
+          ? 'High School Graduate'
+          : 'In School';
+      document.getElementById('lifesim-topline').textContent = `${life.name} · Age ${life.age} · ${career} · ${edu}`;
+    }
+
+    function renderStats() {
+      const el = document.getElementById('lifesim-stats');
+      const labels = { health: 'Health', happiness: 'Happiness', smarts: 'Smarts', looks: 'Looks', money: 'Money' };
+      el.innerHTML = Object.keys(labels)
+        .map((k) => {
+          const value = k === 'money' ? money(life.stats[k]) : life.stats[k];
+          return `<div class="lifesim-stat"><div class="lifesim-stat-label">${labels[k]}</div><div class="lifesim-stat-value">${esc(value)}</div></div>`;
+        })
+        .join('');
+    }
+
+    function renderStory() {
+      const narrativeEl = document.getElementById('lifesim-narrative');
+      const choicesEl = document.getElementById('lifesim-choices');
+
+      if (!life.pendingEvent) {
+        narrativeEl.innerHTML = `<div class="lifesim-age">Age ${life.age}</div><p>The story generator hiccuped. Your progress is saved.</p>`;
+        choicesEl.innerHTML = '';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'portal-btn admin-btn lifesim-choice-btn';
+        btn.textContent = 'Continue';
+        btn.addEventListener('click', async () => {
+          const result = await call('retry_event');
+          if (result) render(result);
+        });
+        choicesEl.appendChild(btn);
+        return;
+      }
+
+      narrativeEl.innerHTML = `<div class="lifesim-age">Age ${life.age}</div><p>${esc(life.pendingEvent.narrative)}</p>`;
+      choicesEl.innerHTML = '';
+      life.pendingEvent.choices.forEach((choice, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'portal-btn admin-btn lifesim-choice-btn';
+        btn.textContent = choice.text;
+        btn.addEventListener('click', async () => {
+          const result = await call('choose', { choiceIndex: i });
+          if (result) render(result);
+        });
+        choicesEl.appendChild(btn);
+      });
+    }
+
+    function relationshipActions(rel) {
+      const actions = [
+        ['spend_time', 'Spend Time'],
+        ['gift', 'Give Gift'],
+        ['compliment', 'Compliment'],
+        ['argue', 'Argue'],
+      ];
+      if (['date', 'friend'].includes(rel.type) && rel.closeness >= 70) actions.push(['propose', 'Propose']);
+      if (['date', 'spouse'].includes(rel.type)) actions.push(['breakup', 'Break Up']);
+      if (rel.type === 'spouse') actions.push(['have_child', 'Have a Child']);
+      return actions;
+    }
+
+    function renderRelationships() {
+      const el = document.getElementById('relationships-list');
+      const alive = life.relationships.filter((r) => r.alive);
+      if (alive.length === 0) {
+        el.innerHTML = '<p class="portal-message">No relationships yet.</p>';
+        return;
+      }
+      el.innerHTML = '';
+      alive.forEach((rel) => {
+        const card = document.createElement('div');
+        card.className = 'lifesim-relationship-card';
+        card.innerHTML = `
+          <div class="lifesim-relationship-head">
+            <span class="lifesim-relationship-name">${esc(rel.name)}</span>
+            <span class="lifesim-relationship-type">${esc(rel.type)} &middot; ${rel.closeness}/100</span>
+          </div>
+          <div class="lifesim-relationship-actions"></div>
+        `;
+        const actionsEl = card.querySelector('.lifesim-relationship-actions');
+        relationshipActions(rel).forEach(([type, label]) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'lifesim-mini-btn';
+          btn.textContent = label;
+          btn.addEventListener('click', async () => {
+            const result = await call('relationship_interact', { relationshipId: rel.id, interactionType: type });
+            if (result) render(result);
+          });
+          actionsEl.appendChild(btn);
+        });
+        el.appendChild(card);
+      });
+    }
+
+    function renderCareer() {
+      const el = document.getElementById('career-panel');
+      el.innerHTML = '';
+
+      if (life.career) {
+        const info = document.createElement('div');
+        info.className = 'lifesim-narrative';
+        info.innerHTML = `<p><strong>${esc(life.career.title)}</strong><br>${money(life.career.salary)}/year</p>`;
+        el.appendChild(info);
+
+        const actions = document.createElement('div');
+        actions.className = 'lifesim-choices';
+        el.appendChild(actions);
+
+        const workBtn = document.createElement('button');
+        workBtn.type = 'button';
+        workBtn.className = 'portal-btn admin-btn lifesim-choice-btn';
+        workBtn.textContent = 'Work Harder (chance of raise)';
+        workBtn.addEventListener('click', async () => {
+          const result = await call('career_action', { type: 'work_harder' });
+          if (result) render(result);
+        });
+        actions.appendChild(workBtn);
+
+        const quitBtn = document.createElement('button');
+        quitBtn.type = 'button';
+        quitBtn.className = 'portal-btn admin-btn lifesim-choice-btn';
+        quitBtn.textContent = 'Quit Job';
+        quitBtn.addEventListener('click', async () => {
+          const result = await call('career_action', { type: 'quit' });
+          if (result) render(result);
+        });
+        actions.appendChild(quitBtn);
+      } else {
+        const info = document.createElement('p');
+        info.className = 'portal-message';
+        info.textContent = 'Unemployed.';
+        el.appendChild(info);
+
+        const applyBtn = document.createElement('button');
+        applyBtn.type = 'button';
+        applyBtn.className = 'portal-btn admin-btn';
+        applyBtn.textContent = 'Apply for a Job';
+        applyBtn.addEventListener('click', async () => {
+          const result = await call('career_action', { type: 'apply' });
+          if (result) render(result);
+        });
+        el.appendChild(applyBtn);
+      }
+
+      if (life.education.collegeStatus === 'none' && life.age >= 18) {
+        const collegeBtn = document.createElement('button');
+        collegeBtn.type = 'button';
+        collegeBtn.className = 'portal-btn admin-btn';
+        collegeBtn.style.marginTop = '0.75rem';
+        collegeBtn.textContent = 'Enroll in College ($40,000, 4 years)';
+        collegeBtn.addEventListener('click', async () => {
+          const result = await call('college_enroll', {});
+          if (result) render(result);
+        });
+        el.appendChild(collegeBtn);
+      }
+
+      if (life.achievements.length) {
+        const ach = document.createElement('div');
+        ach.className = 'lifesim-achievement-list';
+        ach.style.marginTop = '1.25rem';
+        ach.textContent = 'Achievements: ' + life.achievements.join(', ');
+        el.appendChild(ach);
+      }
+    }
+
+    function renderAssets() {
+      const el = document.getElementById('assets-panel');
+      el.innerHTML = '';
+
+      if (life.assets.length) {
+        const owned = document.createElement('div');
+        owned.className = 'lifesim-relationship-card';
+        owned.innerHTML = '<div class="lifesim-relationship-head"><span class="lifesim-relationship-name">Owned</span></div>';
+        const list = document.createElement('div');
+        list.className = 'lifesim-relationship-actions';
+        life.assets.forEach((a) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'lifesim-mini-btn';
+          btn.textContent = `Sell ${a.name}`;
+          btn.addEventListener('click', async () => {
+            const result = await call('asset_action', { type: 'sell', assetType: a.type, assetId: a.id });
+            if (result) render(result);
+          });
+          list.appendChild(btn);
+        });
+        owned.appendChild(list);
+        el.appendChild(owned);
+      }
+
+      Object.keys(ASSET_CATALOG).forEach((type) => {
+        const section = document.createElement('div');
+        section.className = 'lifesim-relationship-card';
+        section.innerHTML = `<div class="lifesim-relationship-head"><span class="lifesim-relationship-name">${type === 'car' ? 'Cars' : 'Houses'}</span></div>`;
+        const list = document.createElement('div');
+        list.className = 'lifesim-relationship-actions';
+        ASSET_CATALOG[type].forEach((item, i) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'lifesim-mini-btn';
+          btn.textContent = `${item.name} — ${money(item.price)}`;
+          btn.addEventListener('click', async () => {
+            const result = await call('asset_action', { type: 'buy', assetType: type, tier: i });
+            if (result) render(result);
+          });
+          list.appendChild(btn);
+        });
+        section.appendChild(list);
+        el.appendChild(section);
+      });
+    }
+
+    function renderActivities() {
+      const el = document.getElementById('activities-panel');
+      el.innerHTML = '';
+      const activities = [
+        ['gym', 'Go to the Gym', 'Boosts health and looks.'],
+        ['doctor', 'Visit the Doctor ($150)', 'Boosts health.'],
+        ['study', 'Study', 'Boosts smarts.'],
+      ];
+      activities.forEach(([type, label, desc]) => {
+        const used = life.cooldowns && life.cooldowns[type] === life.age;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'portal-btn admin-btn lifesim-choice-btn';
+        btn.textContent = used ? `${label} (done this year)` : label;
+        btn.disabled = used;
+        btn.addEventListener('click', async () => {
+          const result = await call('activity', { type });
+          if (result) render(result);
+        });
+        el.appendChild(btn);
+      });
+    }
 
     document.getElementById('logout-link').addEventListener('click', async (e) => {
       e.preventDefault();
@@ -205,10 +470,15 @@
         }
         document.getElementById('loading').hidden = true;
         document.getElementById('content').hidden = false;
-        return loadLife();
+        return fetch('/api/lifesim');
+      })
+      .then((r) => (r && r.ok ? r.json() : Promise.reject()))
+      .then((data) => {
+        if (data && data.life) render(data.life);
       })
       .catch((err) => {
         if (err === 'no-access') return;
+        if (!document.getElementById('content').hidden) return;
         window.location.href = 'portal.html';
       });
   </script>

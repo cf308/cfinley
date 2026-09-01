@@ -13,7 +13,7 @@ Static front end + a small set of Vercel serverless functions for authentication
 - `notepad.html` — Notepad app: private per-user notes (requires the `notepad` permission)
 - `hotels.html` — Hotel Search app: search hotels by city via the Booking.com API on RapidAPI (requires the `hotels` permission)
 - `wordle.html` — Wordle app: daily word puzzle, word fetched once per day from the Wordle API on RapidAPI and cached in Postgres; the guessing game itself runs client-side (requires the `wordle` permission)
-- `lifesim.html` — Life Sim app: single-player, AI-driven BitLife-style life simulator (requires the `lifesim` permission)
+- `lifesim.html` — Life Sim app: single-player, AI-driven BitLife-style life simulator with a persistent Relationships/Career/Assets/Activities menu alongside the yearly AI-generated story event (requires the `lifesim` permission)
 - `privacy.html`, `contact.html` — footer pages
 - `styles.css` — shared styles
 - `status.js` — location/time/weather status bar shown at the top of every page except `portal.html`; uses Open-Meteo only (no key, no account). Location is fetched from `/api/location` and editable site-wide from the "Site Settings" section in `/admin.html`.
@@ -25,7 +25,7 @@ Static front end + a small set of Vercel serverless functions for authentication
   - `hotels` — hotel search (proxies the Booking.com API on RapidAPI; the key stays server-side)
   - `wordle` — daily word (proxies the Wordle API on RapidAPI, cached per day in the `wordle_words` table)
   - `location` — status bar location: public `GET` (used by `status.js`, including for anonymous visitors on the public pages), admin-only `PATCH` that geocodes the new location via Open-Meteo and stores it in the `settings` table
-  - `lifesim` — Life Sim: calls the Anthropic API (Claude Haiku 4.5) each turn to generate the next life event + 3 choices as JSON, applies the chosen choice's stat deltas, and saves the character to the `life_sim` table (one row per user, overwritten on restart)
+  - `lifesim` — Life Sim: calls the Anthropic API (Claude Haiku 4.5) once per year advanced to generate the next event + 3 choices (with optional relationship effects, a new relationship, or an achievement) as JSON; everything else — relationships (spend time/gift/propose/have a child), career (apply/work harder/quit), college enrollment, buying/selling houses and cars, gym/doctor/study — is deterministic server-side logic with no AI call. Saves the character to the `life_sim` table (one row per user, overwritten on restart)
 - `lib/` — shared helpers imported by the functions above, kept out of `api/` so they don't count against the function limit: `_db.js`, `_auth.js`, `_session.js`, `_blob.js`
 
 ## Apps and permissions
@@ -59,4 +59,4 @@ See `.env.example`.
 - The Booking.com free tier on RapidAPI is capped (check your plan's monthly quota — it was 50 requests/month at the time this was built). Each hotel search costs 2 API calls (a destination lookup, then the hotel search), so the app only calls out on explicit form submit, never as-you-type.
 - The homepage and its "Access Portal" framing are unchanged; login is fully functional rather than decorative.
 - The status bar's location (display label + coordinates) lives in the `settings` table, set once via geocoding when an admin saves it in `/admin.html` — `status.js` just reads the stored coordinates from `/api/location` on each page load, no client-side geocoding. Weather refreshes every 10 minutes; the clock re-renders every 30 seconds off the cached timezone. If Open-Meteo or `/api/location` is unreachable, the bar just removes itself — the rest of the page is unaffected.
-- Life Sim spends one Anthropic API call per turn (starting a life, or advancing a year) — real, ongoing cost, not a free tier. Each character is a single row in `life_sim`; starting a new life overwrites the previous one rather than keeping multiple saves.
+- Life Sim spends one Anthropic API call per turn (starting a life, or advancing a year) — real, ongoing cost, not a free tier. Menu actions (relationships, career, assets, activities, college) never call the AI. Each character is a single row in `life_sim`; starting a new life overwrites the previous one rather than keeping multiple saves. Money going negative (debt) is allowed; college tuition currently must be paid up front rather than financed.

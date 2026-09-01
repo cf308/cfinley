@@ -783,12 +783,20 @@ td.app-checkbox-group {
 /* ---- Life Sim ---- */
 
 .lifesim-wrap {
-  max-width: 520px;
+  max-width: 560px;
+}
+
+.lifesim-topline {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 1rem;
 }
 
 .lifesim-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 1px;
   background: var(--line);
   border: 1px solid var(--line);
@@ -855,4 +863,102 @@ td.app-checkbox-group {
   line-height: 1.7;
   color: var(--ink-soft);
   margin-bottom: 1.5rem;
+}
+
+.lifesim-achievement-list {
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: var(--ink-soft);
+  margin-bottom: 1.5rem;
+}
+
+.lifesim-tabs {
+  display: flex;
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+}
+
+.lifesim-tab {
+  flex: 1;
+  white-space: nowrap;
+  padding: 0.65rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: var(--surface);
+  border: none;
+  cursor: pointer;
+}
+
+.lifesim-tab:hover {
+  color: var(--ink);
+}
+
+.lifesim-tab.active {
+  color: var(--accent-ink);
+  background: var(--accent);
+}
+
+.lifesim-relationship-card {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 1rem 1.1rem;
+  margin-bottom: 0.75rem;
+}
+
+.lifesim-relationship-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.65rem;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.lifesim-relationship-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.lifesim-relationship-type {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  text-transform: capitalize;
+}
+
+.lifesim-relationship-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.lifesim-mini-btn {
+  font-family: inherit;
+  font-size: 0.75rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.lifesim-mini-btn:hover {
+  border-color: var(--ink-soft);
+}
+
+.lifesim-mini-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+@media (max-width: 560px) {
+  .lifesim-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
