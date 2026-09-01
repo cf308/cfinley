@@ -1,6 +1,6 @@
-const { putFile, delFile } = require('../../lib/_blob');
-const { sql, ensureSchema } = require('../../lib/_db');
-const { getCurrentUser, hasApp } = require('../../lib/_session');
+const { putFile, delFile } = require('../lib/_blob');
+const { sql, ensureSchema } = require('../lib/_db');
+const { getCurrentUser, hasApp } = require('../lib/_session');
 
 const MAX_UPLOAD_BYTES = 4.5 * 1024 * 1024;
 
@@ -87,8 +87,7 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const segments = req.query.params;
-  const rawId = Array.isArray(segments) ? segments[0] : undefined;
+  const rawId = req.query.id;
 
   if (rawId === undefined) {
     await handleCollection(req, res, user);

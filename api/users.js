@@ -1,5 +1,5 @@
-const { sql, ensureSchema } = require('../../lib/_db');
-const { getSessionUserId, hashPassword } = require('../../lib/_auth');
+const { sql, ensureSchema } = require('../lib/_db');
+const { getSessionUserId, hashPassword } = require('../lib/_auth');
 
 async function requireAdmin(req, res) {
   const uid = getSessionUserId(req);
@@ -117,8 +117,7 @@ async function handleItem(req, res, id) {
 module.exports = async (req, res) => {
   await ensureSchema();
 
-  const segments = req.query.params;
-  const rawId = Array.isArray(segments) ? segments[0] : undefined;
+  const rawId = req.query.id;
 
   if (rawId === undefined) {
     await handleCollection(req, res);

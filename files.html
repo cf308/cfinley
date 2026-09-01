@@ -107,7 +107,7 @@
           del.addEventListener('click', async (e) => {
             e.preventDefault();
             if (!confirm(`Delete ${f.filename}?`)) return;
-            const res = await fetch('/api/files/' + f.id, { method: 'DELETE' });
+            const res = await fetch('/api/files?id=' + f.id, { method: 'DELETE' });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
               messageEl.textContent = data.error || 'Delete failed.';

@@ -17,11 +17,11 @@ Static front end + a small set of Vercel serverless functions for authentication
 - `privacy.html`, `contact.html` — footer pages
 - `styles.css` — shared styles
 - `status.js` — location/time/weather status bar shown at the top of every page except `portal.html`; uses Open-Meteo only (no key, no account). Location is fetched from `/api/location` and editable site-wide from the "Site Settings" section in `/admin.html`.
-- `api/` — serverless functions (11 total; Vercel's Hobby plan caps a deployment at 12, so collection+item routes are merged into one optional-catch-all file each rather than split, and shared helpers live in `lib/` instead of `api/` so they aren't counted as functions themselves — there's room for exactly one more function before this needs revisiting):
+- `api/` — serverless functions (11 total; Vercel's Hobby plan caps a deployment at 12, so collection+item routes are merged into one file each rather than split, and shared helpers live in `lib/` instead of `api/` so they aren't counted as functions themselves — there's room for exactly one more function before this needs revisiting). Collection/item routes take the item id as a `?id=` query param (e.g. `/api/users?id=5`) rather than a path segment — Vercel's optional-catch-all filename convention (`[[...id]].js`) is a Next.js-specific routing feature and doesn't reliably work for plain Vercel Serverless Functions, which is what caused the admin user list to silently break after that merge:
   - `login`, `logout`, `me`, `setup` — auth
-  - `users/[[...params]]` — admin user management (`/api/users` list/create, `/api/users/:id` update/delete)
-  - `files/[[...params]]` — file storage, backed by Vercel Blob (`/api/files` list/upload, `/api/files/:id` delete)
-  - `notes/[[...params]]` — notepad (`/api/notes` list/create, `/api/notes/:id` update/delete)
+  - `users` — admin user management (`/api/users` list/create, `/api/users?id=:id` update/delete)
+  - `files` — file storage, backed by Vercel Blob (`/api/files` list/upload, `/api/files?id=:id` delete)
+  - `notes` — notepad (`/api/notes` list/create, `/api/notes?id=:id` update/delete)
   - `hotels` — hotel search (proxies the Booking.com API on RapidAPI; the key stays server-side)
   - `wordle` — daily word (proxies the Wordle API on RapidAPI, cached per day in the `wordle_words` table)
   - `location` — status bar location: public `GET` (used by `status.js`, including for anonymous visitors on the public pages), admin-only `PATCH` that geocodes the new location via Open-Meteo and stores it in the `settings` table

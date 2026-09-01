@@ -1,5 +1,5 @@
-const { sql, ensureSchema } = require('../../lib/_db');
-const { getCurrentUser, hasApp } = require('../../lib/_session');
+const { sql, ensureSchema } = require('../lib/_db');
+const { getCurrentUser, hasApp } = require('../lib/_session');
 
 async function handleCollection(req, res, user) {
   if (req.method === 'GET') {
@@ -64,8 +64,7 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const segments = req.query.params;
-  const rawId = Array.isArray(segments) ? segments[0] : undefined;
+  const rawId = req.query.id;
 
   if (rawId === undefined) {
     await handleCollection(req, res, user);

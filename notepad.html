@@ -106,7 +106,7 @@
       const content = document.getElementById('note-content').value;
       const messageEl = document.getElementById('note-message');
 
-      const res = await fetch('/api/notes/' + activeId, {
+      const res = await fetch('/api/notes?id=' + activeId, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, content }),
@@ -127,7 +127,7 @@
       if (activeId == null) return;
       if (!confirm('Delete this note?')) return;
 
-      const res = await fetch('/api/notes/' + activeId, { method: 'DELETE' });
+      const res = await fetch('/api/notes?id=' + activeId, { method: 'DELETE' });
       if (!res.ok) return;
       notes = notes.filter((n) => n.id !== activeId);
       activeId = null;

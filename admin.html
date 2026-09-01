@@ -165,7 +165,7 @@
           del.addEventListener('click', async (e) => {
             e.preventDefault();
             if (!confirm(`Delete ${u.email}?`)) return;
-            const res = await fetch('/api/users/' + u.id, { method: 'DELETE' });
+            const res = await fetch('/api/users?id=' + u.id, { method: 'DELETE' });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
               document.getElementById('users-message').textContent = data.error || 'Delete failed.';
@@ -204,7 +204,7 @@
         const body = { isAdmin, permissions };
         if (password) body.password = password;
 
-        const res = await fetch('/api/users/' + u.id, {
+        const res = await fetch('/api/users?id=' + u.id, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
