@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C Finley — Server Status</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="status.js" defer></script>
+</head>
+<body>
+  <div class="page">
+    <main class="doc-main">
+      <div class="doc status-page">
+        <div class="doc-wordmark">C&nbsp;FINLEY</div>
+        <h1>Server Status</h1>
+
+        <div class="status-banner" id="status-banner">Checking&hellip;</div>
+
+        <div class="status-rows" id="status-rows"></div>
+
+        <p class="status-checked" id="status-checked"></p>
+
+        <p><a href="index.html">&larr; Return home</a></p>
+      </div>
+    </main>
+    <footer class="footer">
+      <span>&copy; C Finley</span>
+      <span class="sep">&middot;</span>
+      <a href="index.html">Home</a>
+      <span class="sep">&middot;</span>
+      <a href="privacy.html">Privacy</a>
+      <span class="sep">&middot;</span>
+      <a href="contact.html">Contact</a>
+    </footer>
+  </div>
+
+  <script>
+    function row(label, ok, detail) {
+      const el = document.createElement('div');
+      el.className = 'status-row';
+      el.innerHTML = `
+        <span class="status-dot ${ok ? 'ok' : 'down'}"></span>
+        <span class="status-row-label">${label}</span>
+        <span class="status-row-detail">${detail || ''}</span>
+      `;
+      return el;
+    }
+
+    fetch('/api/status')
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data) => {
+        const banner = document.getElementById('status-banner');
+        banner.textContent = data.operational ? 'All Systems Operational' : 'Degraded';
+        banner.className = 'status-banner ' + (data.operational ? 'ok' : 'down');
+
+        const rows = document.getElementById('status-rows');
+        rows.appendChild(row('Database', data.database.ok, data.database.ok ? data.database.latencyMs + ' ms' : 'Unreachable'));
+        rows.appendChild(row('File Storage', data.integrations.fileStorage, data.integrations.fileStorage ? 'Configured' : 'Not configured'));
+        rows.appendChild(row('Hotel Search', data.integrations.hotelSearch, data.integrations.hotelSearch ? 'Configured' : 'Not configured'));
+        rows.appendChild(row('Wordle', data.integrations.wordle, data.integrations.wordle ? 'Configured' : 'Not configured'));
+        rows.appendChild(row('Life Sim', data.integrations.lifeSim, data.integrations.lifeSim ? 'Configured' : 'Not configured'));
+
+        document.getElementById('status-checked').textContent = 'Checked ' + new Date(data.checkedAt).toLocaleString();
+      })
+      .catch(() => {
+        const banner = document.getElementById('status-banner');
+        banner.textContent = 'Unable to reach status service';
+        banner.className = 'status-banner down';
+      });
+  </script>
+</body>
+</html>
