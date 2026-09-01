@@ -1,4 +1,29 @@
-const { sql } = require('@vercel/postgres');
+const { Pool } = require('pg');
+
+let pool;
+
+function getPool() {
+  if (!pool) {
+    const connectionString = process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING;
+    if (!connectionString) {
+      throw new Error('POSTGRES_URL environment variable is not set');
+    }
+    pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } });
+  }
+  return pool;
+}
+
+// Minimal stand-in for the @vercel/postgres `sql` tagged template, backed by
+// plain `pg` so this works with any provider's connection string (pooled or
+// direct), not just Neon-style pooled ones.
+async function sql(strings, ...values) {
+  let text = strings[0];
+  for (let i = 0; i < values.length; i++) {
+    text += `$${i + 1}` + strings[i + 1];
+  }
+  const result = await getPool().query(text, values);
+  return { rows: result.rows };
+}
 
 let schemaReady;
 
