@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C Finley — Hotel Search</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page">
+    <main class="admin-main">
+      <div class="admin-wrap" id="content" hidden>
+        <div class="admin-header">
+          <div class="doc-wordmark">C&nbsp;FINLEY</div>
+          <div class="admin-header-actions">
+            <a href="dashboard.html">Home</a>
+            <a href="#" id="logout-link">Log out</a>
+          </div>
+        </div>
+
+        <h1 class="admin-title">Hotel Search</h1>
+
+        <section class="admin-section">
+          <form id="search-form" class="admin-form">
+            <div class="field">
+              <label for="city-input">City</label>
+              <input type="text" id="city-input" placeholder="e.g. Mumbai" required>
+            </div>
+            <button type="submit" class="portal-btn admin-btn" id="search-btn">Search</button>
+            <p class="portal-message" id="search-message" role="status" aria-live="polite"></p>
+          </form>
+        </section>
+
+        <section class="admin-section" id="results-section" hidden>
+          <h2 id="results-heading"></h2>
+          <div class="hotel-grid" id="hotel-grid"></div>
+        </section>
+      </div>
+
+      <p class="portal-message" id="loading">Checking session&hellip;</p>
+    </main>
+  </div>
+
+  <script>
+    function esc(s) {
+      const d = document.createElement('div');
+      d.textContent = s == null ? '' : String(s);
+      return d.innerHTML;
+    }
+
+    function stars(n) {
+      if (!n) return '';
+      return '★'.repeat(n);
+    }
+
+    document.getElementById('search-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const city = document.getElementById('city-input').value.trim();
+      if (!city) return;
+
+      const btn = document.getElementById('search-btn');
+      const messageEl = document.getElementById('search-message');
+      const resultsSection = document.getElementById('results-section');
+
+      btn.disabled = true;
+      messageEl.textContent = 'Searching…';
+      resultsSection.hidden = true;
+
+      try {
+        const res = await fetch('/api/hotels?city=' + encodeURIComponent(city));
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          messageEl.textContent = data.error || 'Search failed.';
+          btn.disabled = false;
+          return;
+        }
+
+        messageEl.textContent = '';
+        btn.disabled = false;
+
+        document.getElementById('results-heading').textContent =
+          data.destination.label + ' — ' + data.checkin + ' to ' + data.checkout;
+
+        const grid = document.getElementById('hotel-grid');
+        grid.innerHTML = '';
+
+        if (data.hotels.length === 0) {
+          grid.innerHTML = '<p class="portal-message">No hotels found.</p>';
+        }
+
+        data.hotels.forEach((h) => {
+          const card = document.createElement('div');
+          card.className = 'hotel-card';
+          card.innerHTML = `
+            ${h.photo ? `<img class="hotel-card-photo" src="${esc(h.photo)}" alt="">` : '<div class="hotel-card-photo hotel-card-photo-empty"></div>'}
+            <div class="hotel-card-body">
+              <div class="hotel-card-name">${esc(h.name)}</div>
+              <div class="hotel-card-stars">${esc(stars(h.stars))}</div>
+              <div class="hotel-card-review">${h.reviewScore ? esc(h.reviewScore) + ' ' + esc(h.reviewScoreWord) + ' (' + esc(h.reviewCount) + ' reviews)' : ''}</div>
+              <div class="hotel-card-price">${h.price ? esc(Math.round(h.price)) + ' ' + esc(h.currency) : ''}</div>
+            </div>
+          `;
+          grid.appendChild(card);
+        });
+
+        resultsSection.hidden = false;
+      } catch (err) {
+        messageEl.textContent = 'Search failed.';
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById('logout-link').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = 'index.html';
+    });
+
+    fetch('/api/me')
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data) => {
+        if (!data.isAdmin && !(data.permissions || []).includes('hotels')) {
+          window.location.href = 'dashboard.html';
+          return;
+        }
+        document.getElementById('loading').hidden = true;
+        document.getElementById('content').hidden = false;
+      })
+      .catch(() => {
+        window.location.href = 'portal.html';
+      });
+  </script>
+</body>
+</html>

@@ -596,3 +596,57 @@ td.app-checkbox-group {
     width: 100%;
   }
 }
+
+/* ---- Hotel search ---- */
+
+.hotel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+
+.hotel-card {
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+}
+
+.hotel-card-photo {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
+}
+
+.hotel-card-photo-empty {
+  background: var(--bg);
+}
+
+.hotel-card-body {
+  padding: 1rem 1.1rem;
+}
+
+.hotel-card-name {
+  font-size: 0.85rem;
+  margin-bottom: 0.4rem;
+  line-height: 1.4;
+}
+
+.hotel-card-stars {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  margin-bottom: 0.3rem;
+}
+
+.hotel-card-review {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  margin-bottom: 0.5rem;
+}
+
+.hotel-card-price {
+  font-size: 0.9rem;
+  font-weight: bold;
+}
