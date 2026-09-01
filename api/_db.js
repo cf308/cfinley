@@ -59,6 +59,13 @@ function ensureSchema() {
           updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
       `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS wordle_words (
+          date TEXT PRIMARY KEY,
+          word TEXT NOT NULL,
+          fetched_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `;
     })();
   }
   return schemaReady;

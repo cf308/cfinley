@@ -12,6 +12,7 @@ Static front end + a small set of Vercel serverless functions for authentication
 - `files.html` — File Storage app: shared upload/download/delete (requires the `files` permission)
 - `notepad.html` — Notepad app: private per-user notes (requires the `notepad` permission)
 - `hotels.html` — Hotel Search app: search hotels by city via the Booking.com API on RapidAPI (requires the `hotels` permission)
+- `wordle.html` — Wordle app: daily word puzzle, word fetched once per day from the Wordle API on RapidAPI and cached in Postgres; the guessing game itself runs client-side (requires the `wordle` permission)
 - `privacy.html`, `contact.html` — footer pages
 - `styles.css` — shared styles
 - `api/` — serverless functions:
@@ -20,11 +21,12 @@ Static front end + a small set of Vercel serverless functions for authentication
   - `files`, `files/[id]` — file storage (backed by Vercel Blob)
   - `notes`, `notes/[id]` — notepad
   - `hotels` — hotel search (proxies the Booking.com API on RapidAPI; the key stays server-side)
+  - `wordle` — daily word (proxies the Wordle API on RapidAPI, cached per day in the `wordle_words` table)
   - `_db.js`, `_auth.js`, `_session.js`, `_blob.js` — shared helpers (not routes)
 
 ## Apps and permissions
 
-Each app is gated by a permission id stored per-user (`permissions text[]` on the `users` table): `files`, `notepad`, `hotels`, and `adsb` (reserved for a future ADS-B Exchange integration — the tile shows on the home screen as "Coming soon" and isn't wired to a page yet). Admins implicitly have access to every app regardless of their permission list. Grant/revoke access per user from the checkboxes in `/admin.html`; changes apply immediately since permissions are re-read from the database on every request, not cached in the session.
+Each app is gated by a permission id stored per-user (`permissions text[]` on the `users` table): `files`, `notepad`, `hotels`, `wordle`, and `adsb` (reserved for a future ADS-B Exchange integration — the tile shows on the home screen as "Coming soon" and isn't wired to a page yet). Admins implicitly have access to every app regardless of their permission list. Grant/revoke access per user from the checkboxes in `/admin.html`; changes apply immediately since permissions are re-read from the database on every request, not cached in the session.
 
 ## Requirements
 
@@ -33,7 +35,7 @@ Each app is gated by a permission id stored per-user (`permissions text[]` on th
 - Three environment variables, set in the Vercel project before your first deploy:
   - `SESSION_SECRET` — long random string used to sign session cookies (e.g. `openssl rand -base64 48`)
   - `SETUP_TOKEN` — one-time token required to create the first admin account; without it, `/setup.html` refuses to create anyone
-  - `RAPIDAPI_KEY` — your RapidAPI key, subscribed to the `booking-com15` API's free tier, for the Hotel Search app
+  - `RAPIDAPI_KEY` — your RapidAPI key, subscribed to the `booking-com15` and `wordle-api3` APIs, for the Hotel Search and Wordle apps
 
 See `.env.example`.
 
