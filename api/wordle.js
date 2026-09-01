@@ -1,5 +1,5 @@
-const { sql, ensureSchema } = require('./_db');
-const { getCurrentUser, hasApp } = require('./_session');
+const { sql, ensureSchema } = require('../lib/_db');
+const { getCurrentUser, hasApp } = require('../lib/_session');
 
 const RAPIDAPI_HOST = 'wordle-api3.p.rapidapi.com';
 

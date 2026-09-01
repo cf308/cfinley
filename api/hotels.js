@@ -1,4 +1,4 @@
-const { getCurrentUser, hasApp } = require('./_session');
+const { getCurrentUser, hasApp } = require('../lib/_session');
 
 const RAPIDAPI_HOST = 'booking-com15.p.rapidapi.com';
 

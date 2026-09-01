@@ -1,5 +1,5 @@
-const { sql, ensureSchema } = require('./_db');
-const { getCurrentUser } = require('./_session');
+const { sql, ensureSchema } = require('../lib/_db');
+const { getCurrentUser } = require('../lib/_session');
 
 const DEFAULT_LOCATION = {
   label: 'CAPE COD, MA',

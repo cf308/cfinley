@@ -1,5 +1,5 @@
-const { sql, ensureSchema } = require('./_db');
-const { hashPassword, setSessionCookie } = require('./_auth');
+const { sql, ensureSchema } = require('../lib/_db');
+const { hashPassword, setSessionCookie } = require('../lib/_auth');
 
 module.exports = async (req, res) => {
   await ensureSchema();

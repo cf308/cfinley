@@ -16,15 +16,15 @@ Static front end + a small set of Vercel serverless functions for authentication
 - `privacy.html`, `contact.html` — footer pages
 - `styles.css` — shared styles
 - `status.js` — location/time/weather status bar shown at the top of every page except `portal.html`; uses Open-Meteo only (no key, no account). Location is fetched from `/api/location` and editable site-wide from the "Site Settings" section in `/admin.html`.
-- `api/` — serverless functions:
+- `api/` — serverless functions (10 total; Vercel's Hobby plan caps a deployment at 12, so collection+item routes are merged into one optional-catch-all file each rather than split, and shared helpers live in `lib/` instead of `api/` so they aren't counted as functions themselves):
   - `login`, `logout`, `me`, `setup` — auth
-  - `users`, `users/[id]` — admin user management
-  - `files`, `files/[id]` — file storage (backed by Vercel Blob)
-  - `notes`, `notes/[id]` — notepad
+  - `users/[[...params]]` — admin user management (`/api/users` list/create, `/api/users/:id` update/delete)
+  - `files/[[...params]]` — file storage, backed by Vercel Blob (`/api/files` list/upload, `/api/files/:id` delete)
+  - `notes/[[...params]]` — notepad (`/api/notes` list/create, `/api/notes/:id` update/delete)
   - `hotels` — hotel search (proxies the Booking.com API on RapidAPI; the key stays server-side)
   - `wordle` — daily word (proxies the Wordle API on RapidAPI, cached per day in the `wordle_words` table)
   - `location` — status bar location: public `GET` (used by `status.js`, including for anonymous visitors on the public pages), admin-only `PATCH` that geocodes the new location via Open-Meteo and stores it in the `settings` table
-  - `_db.js`, `_auth.js`, `_session.js`, `_blob.js` — shared helpers (not routes)
+- `lib/` — shared helpers imported by the functions above, kept out of `api/` so they don't count against the function limit: `_db.js`, `_auth.js`, `_session.js`, `_blob.js`
 
 ## Apps and permissions
 

@@ -1,5 +1,5 @@
-const { sql, ensureSchema } = require('./_db');
-const { verifyPassword, setSessionCookie } = require('./_auth');
+const { sql, ensureSchema } = require('../lib/_db');
+const { verifyPassword, setSessionCookie } = require('../lib/_auth');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
