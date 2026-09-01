@@ -7,7 +7,7 @@ Static front end + a small set of Vercel serverless functions for authentication
 - `index.html` — homepage
 - `portal.html` — login screen, posts to `/api/login`
 - `setup.html` — one-time screen to create the first admin account
-- `dashboard.html` — home screen; shows an app tile for each app the signed-in user has access to
+- `dashboard.html` — home screen; a desktop-style row of floating icon+label launchers (hand-drawn inline SVGs, no icon library) for each app the signed-in user has access to
 - `admin.html` — Control Panel: a stat dashboard (users/files/notes/active Life Sim characters), add users, grant/deny per-app access via checkboxes, toggle admin, reset passwords, delete users, see each user's last-active time
 - `files.html` — File Storage app: shared upload/download/delete (requires the `files` permission)
 - `notepad.html` — Notepad app: private per-user notes (requires the `notepad` permission)
