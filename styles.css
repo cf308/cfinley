@@ -1,0 +1,270 @@
+:root {
+  --bg: #f7f6f3;
+  --ink: #1c1c1c;
+  --ink-soft: #4a4a4a;
+  --line: #d8d6d0;
+  --navy: #0b1a2b;
+  --navy-hover: #142943;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Georgia, "Times New Roman", Times, serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 6rem 1.5rem;
+}
+
+.wordmark {
+  font-size: 0.95rem;
+  letter-spacing: 0.28em;
+  font-weight: 400;
+  color: var(--ink);
+  text-transform: uppercase;
+}
+
+.rule {
+  width: 36px;
+  height: 1px;
+  background: var(--line);
+  margin: 1.75rem 0;
+}
+
+.eyebrow {
+  margin: 0 0 0.6rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.lede {
+  margin: 0 0 2.5rem;
+  max-width: 380px;
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.85rem 2.25rem;
+  font-family: inherit;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: #f7f6f3;
+  background: var(--navy);
+  border: 1px solid var(--navy);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.btn:hover {
+  background: var(--navy-hover);
+  border-color: var(--navy-hover);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 3px;
+}
+
+.footer {
+  padding: 2rem 1.5rem 2.5rem;
+  text-align: center;
+  font-family: Georgia, "Times New Roman", Times, serif;
+  font-size: 0.76rem;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+}
+
+.footer a {
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+
+.footer a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.footer .sep {
+  margin: 0 0.6rem;
+  color: var(--line);
+}
+
+/* ---- Portal ---- */
+
+.portal-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1.5rem;
+}
+
+.portal-card {
+  width: 100%;
+  max-width: 360px;
+  padding: 2.75rem 2.25rem;
+  background: #ffffff;
+  border: 1px solid var(--line);
+}
+
+.portal-wordmark {
+  text-align: center;
+  font-size: 0.82rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.portal-title {
+  text-align: center;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 0 2.25rem;
+}
+
+.field {
+  margin-bottom: 1.25rem;
+}
+
+.field label {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 0.45rem;
+}
+
+.field input {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  font-family: Georgia, "Times New Roman", Times, serif;
+  font-size: 0.95rem;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 0;
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--navy);
+  background: #fff;
+}
+
+.portal-btn {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.8rem 1rem;
+  font-family: inherit;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f7f6f3;
+  background: var(--navy);
+  border: 1px solid var(--navy);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.portal-btn:hover {
+  background: var(--navy-hover);
+  border-color: var(--navy-hover);
+}
+
+.portal-message {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  min-height: 1.2em;
+}
+
+.portal-back {
+  display: block;
+  margin-top: 2rem;
+  text-align: center;
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+
+.portal-back:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+/* ---- Simple content pages ---- */
+
+.doc-main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 5rem 1.5rem;
+}
+
+.doc {
+  width: 100%;
+  max-width: 480px;
+}
+
+.doc-wordmark {
+  font-size: 0.82rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  margin-bottom: 2.5rem;
+}
+
+.doc h1 {
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 400;
+  margin: 0 0 1.75rem;
+}
+
+.doc p {
+  font-size: 0.95rem;
+  line-height: 1.75;
+  color: var(--ink-soft);
+  margin: 0 0 1.25rem;
+}
+
+.doc a {
+  color: var(--ink);
+}
