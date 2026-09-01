@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C Finley — File Storage</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page">
+    <main class="admin-main">
+      <div class="admin-wrap" id="content" hidden>
+        <div class="admin-header">
+          <div class="doc-wordmark">C&nbsp;FINLEY</div>
+          <div class="admin-header-actions">
+            <a href="dashboard.html">Home</a>
+            <a href="#" id="logout-link">Log out</a>
+          </div>
+        </div>
+
+        <h1 class="admin-title">File Storage</h1>
+
+        <section class="admin-section">
+          <form id="upload-form" class="admin-form">
+            <div class="field">
+              <label for="file-input">Upload File (max 4.5MB)</label>
+              <input type="file" id="file-input" required>
+            </div>
+            <button type="submit" class="portal-btn admin-btn" id="upload-btn">Upload</button>
+            <p class="portal-message" id="upload-message" role="status" aria-live="polite"></p>
+          </form>
+        </section>
+
+        <section class="admin-section">
+          <h2>Files</h2>
+          <div class="admin-table-wrap">
+            <table class="admin-table" id="files-table">
+              <thead>
+                <tr>
+                  <th>Filename</th>
+                  <th>Size</th>
+                  <th>Uploaded By</th>
+                  <th>Date</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="files-tbody"></tbody>
+            </table>
+          </div>
+          <p class="portal-message" id="files-message" role="status" aria-live="polite"></p>
+        </section>
+      </div>
+
+      <p class="portal-message" id="loading">Checking session&hellip;</p>
+    </main>
+  </div>
+
+  <script>
+    let currentUser = null;
+
+    function esc(s) {
+      const d = document.createElement('div');
+      d.textContent = s == null ? '' : String(s);
+      return d.innerHTML;
+    }
+
+    function formatSize(bytes) {
+      bytes = Number(bytes);
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    async function loadFiles() {
+      const res = await fetch('/api/files');
+      const data = await res.json().catch(() => ({}));
+      const messageEl = document.getElementById('files-message');
+      if (!res.ok) {
+        messageEl.textContent = data.error || 'Unable to load files.';
+        return;
+      }
+      messageEl.textContent = '';
+
+      const tbody = document.getElementById('files-tbody');
+      tbody.innerHTML = '';
+
+      data.files.forEach((f) => {
+        const tr = document.createElement('tr');
+        const canDelete = currentUser.isAdmin || f.uploaded_by === currentUser.email;
+        tr.innerHTML = `
+          <td><a href="${esc(f.blob_url)}" target="_blank" rel="noopener">${esc(f.filename)}</a></td>
+          <td>${formatSize(f.size)}</td>
+          <td>${esc(f.uploaded_by)}</td>
+          <td>${esc(new Date(f.created_at).toLocaleDateString())}</td>
+          <td class="admin-table-actions">${canDelete ? '<a href="#" class="delete-link">Delete</a>' : ''}</td>
+        `;
+        tbody.appendChild(tr);
+
+        const del = tr.querySelector('.delete-link');
+        if (del) {
+          del.addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (!confirm(`Delete ${f.filename}?`)) return;
+            const res = await fetch('/api/files/' + f.id, { method: 'DELETE' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+              messageEl.textContent = data.error || 'Delete failed.';
+              return;
+            }
+            loadFiles();
+          });
+        }
+      });
+    }
+
+    document.getElementById('upload-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('file-input');
+      const messageEl = document.getElementById('upload-message');
+      const btn = document.getElementById('upload-btn');
+      const file = input.files[0];
+      if (!file) return;
+
+      btn.disabled = true;
+      messageEl.textContent = 'Uploading…';
+
+      try {
+        const res = await fetch('/api/files', {
+          method: 'POST',
+          headers: { 'x-filename': encodeURIComponent(file.name) },
+          body: file,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          messageEl.textContent = data.error || 'Upload failed.';
+          btn.disabled = false;
+          return;
+        }
+        messageEl.textContent = '';
+        e.target.reset();
+        btn.disabled = false;
+        loadFiles();
+      } catch (err) {
+        messageEl.textContent = 'Upload failed.';
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById('logout-link').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = 'index.html';
+    });
+
+    fetch('/api/me')
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data) => {
+        if (!data.isAdmin && !(data.permissions || []).includes('files')) {
+          window.location.href = 'dashboard.html';
+          return;
+        }
+        currentUser = data;
+        document.getElementById('loading').hidden = true;
+        document.getElementById('content').hidden = false;
+        loadFiles();
+      })
+      .catch(() => {
+        window.location.href = 'portal.html';
+      });
+  </script>
+</body>
+</html>

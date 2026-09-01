@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C Finley — Notepad</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page">
+    <main class="admin-main">
+      <div class="admin-wrap" id="content" hidden>
+        <div class="admin-header">
+          <div class="doc-wordmark">C&nbsp;FINLEY</div>
+          <div class="admin-header-actions">
+            <a href="dashboard.html">Home</a>
+            <a href="#" id="logout-link">Log out</a>
+          </div>
+        </div>
+
+        <h1 class="admin-title">Notepad</h1>
+
+        <div class="notepad-layout">
+          <div class="notepad-list">
+            <button type="button" class="portal-btn admin-btn notepad-new-btn" id="new-note-btn">New Note</button>
+            <ul class="notepad-notes" id="notes-list"></ul>
+          </div>
+
+          <div class="notepad-editor" id="editor" hidden>
+            <input type="text" id="note-title" class="notepad-title-input" placeholder="Untitled">
+            <textarea id="note-content" class="notepad-content-input" placeholder="Write something…"></textarea>
+            <div class="notepad-editor-actions">
+              <button type="button" class="portal-btn admin-btn" id="save-note-btn">Save</button>
+              <a href="#" id="delete-note-btn">Delete</a>
+              <span class="portal-message" id="note-message"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="portal-message" id="loading">Checking session&hellip;</p>
+    </main>
+  </div>
+
+  <script>
+    let notes = [];
+    let activeId = null;
+
+    function esc(s) {
+      const d = document.createElement('div');
+      d.textContent = s == null ? '' : String(s);
+      return d.innerHTML;
+    }
+
+    async function loadNotes() {
+      const res = await fetch('/api/notes');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return;
+      notes = data.notes;
+      renderList();
+    }
+
+    function renderList() {
+      const list = document.getElementById('notes-list');
+      list.innerHTML = '';
+      notes.forEach((n) => {
+        const li = document.createElement('li');
+        li.className = 'notepad-note-item' + (n.id === activeId ? ' active' : '');
+        li.textContent = n.title || 'Untitled';
+        li.addEventListener('click', () => openNote(n.id));
+        list.appendChild(li);
+      });
+    }
+
+    function openNote(id) {
+      activeId = id;
+      const note = notes.find((n) => n.id === id);
+      document.getElementById('editor').hidden = false;
+      document.getElementById('note-title').value = note.title;
+      document.getElementById('note-content').value = note.content;
+      document.getElementById('note-message').textContent = '';
+      renderList();
+    }
+
+    document.getElementById('new-note-btn').addEventListener('click', async () => {
+      const res = await fetch('/api/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'Untitled', content: '' }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return;
+      notes.unshift(data.note);
+      openNote(data.note.id);
+    });
+
+    document.getElementById('save-note-btn').addEventListener('click', async () => {
+      if (activeId == null) return;
+      const title = document.getElementById('note-title').value;
+      const content = document.getElementById('note-content').value;
+      const messageEl = document.getElementById('note-message');
+
+      const res = await fetch('/api/notes/' + activeId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        messageEl.textContent = data.error || 'Save failed.';
+        return;
+      }
+      messageEl.textContent = 'Saved.';
+      const idx = notes.findIndex((n) => n.id === activeId);
+      if (idx !== -1) notes[idx] = data.note;
+      renderList();
+    });
+
+    document.getElementById('delete-note-btn').addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (activeId == null) return;
+      if (!confirm('Delete this note?')) return;
+
+      const res = await fetch('/api/notes/' + activeId, { method: 'DELETE' });
+      if (!res.ok) return;
+      notes = notes.filter((n) => n.id !== activeId);
+      activeId = null;
+      document.getElementById('editor').hidden = true;
+      renderList();
+    });
+
+    document.getElementById('logout-link').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = 'index.html';
+    });
+
+    fetch('/api/me')
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data) => {
+        if (!data.isAdmin && !(data.permissions || []).includes('notepad')) {
+          window.location.href = 'dashboard.html';
+          return;
+        }
+        document.getElementById('loading').hidden = true;
+        document.getElementById('content').hidden = false;
+        loadNotes();
+      })
+      .catch(() => {
+        window.location.href = 'portal.html';
+      });
+  </script>
+</body>
+</html>

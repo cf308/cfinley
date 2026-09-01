@@ -3,37 +3,69 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>C Finley — Resources</title>
+<title>C Finley — Home</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="page">
-    <main class="doc-main">
-      <div class="doc" id="content" hidden>
-        <div class="doc-wordmark">C&nbsp;FINLEY</div>
-        <h1>Internal Resources</h1>
-        <p>Signed in as <strong id="user-email"></strong>.</p>
-        <p>Assigned permissions: <span id="user-perms"></span></p>
-        <p id="admin-link-wrap" hidden><a href="admin.html">Open Admin Panel &rarr;</a></p>
-        <p><a href="#" id="logout-link">Log out</a></p>
+    <main class="admin-main">
+      <div class="admin-wrap" id="content" hidden>
+        <div class="admin-header">
+          <div class="doc-wordmark">C&nbsp;FINLEY</div>
+          <div class="admin-header-actions">
+            <span id="user-email"></span>
+            <a href="#" id="logout-link">Log out</a>
+          </div>
+        </div>
+
+        <h1 class="admin-title">Applications</h1>
+
+        <div class="app-grid" id="app-grid"></div>
+        <p class="portal-message" id="no-apps" hidden>No applications have been assigned to your account yet.</p>
       </div>
+
       <p class="portal-message" id="loading">Checking session&hellip;</p>
     </main>
   </div>
 
   <script>
+    const APPS = [
+      { id: 'files', name: 'File Storage', desc: 'Shared document storage.', href: 'files.html' },
+      { id: 'notepad', name: 'Notepad', desc: 'Private notes.', href: 'notepad.html' },
+      { id: 'adsb', name: 'ADS-B Exchange', desc: 'Live aircraft tracking.', href: null, comingSoon: true },
+    ];
+
     fetch('/api/me')
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((data) => {
         document.getElementById('loading').hidden = true;
         document.getElementById('user-email').textContent = data.email;
-        document.getElementById('user-perms').textContent =
-          data.permissions && data.permissions.length ? data.permissions.join(', ') : 'None assigned';
+
+        const grid = document.getElementById('app-grid');
+        const allowed = APPS.filter((app) => data.isAdmin || (data.permissions || []).includes(app.id));
+
         if (data.isAdmin) {
-          document.getElementById('admin-link-wrap').hidden = false;
+          allowed.push({ id: 'admin', name: 'Admin Panel', desc: 'Manage users and permissions.', href: 'admin.html' });
         }
+
+        if (allowed.length === 0) {
+          document.getElementById('no-apps').hidden = false;
+        }
+
+        allowed.forEach((app) => {
+          const tile = document.createElement(app.href ? 'a' : 'div');
+          tile.className = 'app-tile' + (app.comingSoon ? ' app-tile-disabled' : '');
+          if (app.href) tile.href = app.href;
+          tile.innerHTML = `
+            <div class="app-tile-name">${app.name}</div>
+            <div class="app-tile-desc">${app.desc}</div>
+            ${app.comingSoon ? '<div class="app-tile-badge">Coming soon</div>' : ''}
+          `;
+          grid.appendChild(tile);
+        });
+
         document.getElementById('content').hidden = false;
       })
       .catch(() => {

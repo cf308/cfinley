@@ -15,7 +15,7 @@
         <div class="admin-header">
           <div class="doc-wordmark">C&nbsp;FINLEY</div>
           <div class="admin-header-actions">
-            <a href="dashboard.html">Resources</a>
+            <a href="dashboard.html">Home</a>
             <a href="#" id="logout-link">Log out</a>
           </div>
         </div>
@@ -34,8 +34,8 @@
               <input type="password" id="new-password" autocomplete="off" required>
             </div>
             <div class="field">
-              <label for="new-permissions">Permissions (comma-separated)</label>
-              <input type="text" id="new-permissions" placeholder="e.g. reports, filings">
+              <label>App Access</label>
+              <div class="app-checkbox-group" id="new-apps"></div>
             </div>
             <div class="field field-checkbox">
               <label><input type="checkbox" id="new-is-admin"> Grant admin access</label>
@@ -73,17 +73,33 @@
     let currentUser = null;
     let users = [];
 
+    const APPS = [
+      { id: 'files', label: 'File Storage' },
+      { id: 'notepad', label: 'Notepad' },
+      { id: 'adsb', label: 'ADS-B Exchange (coming soon)' },
+    ];
+
     function esc(s) {
       const d = document.createElement('div');
       d.textContent = s == null ? '' : String(s);
       return d.innerHTML;
     }
 
-    function permsToArray(text) {
-      return text
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean);
+    function appCheckboxesHtml(classPrefix, selected) {
+      return APPS.map(
+        (app) => `
+          <label class="app-checkbox">
+            <input type="checkbox" class="${classPrefix}" value="${app.id}" ${selected.includes(app.id) ? 'checked' : ''}>
+            ${esc(app.label)}
+          </label>
+        `
+      ).join('');
+    }
+
+    function appLabels(ids) {
+      return APPS.filter((app) => (ids || []).includes(app.id))
+        .map((app) => app.label.replace(' (coming soon)', ''))
+        .join(', ');
     }
 
     async function loadUsers() {
@@ -107,7 +123,7 @@
         tr.innerHTML = `
           <td>${esc(u.email)}</td>
           <td>${u.is_admin ? 'Yes' : 'No'}</td>
-          <td>${esc((u.permissions || []).join(', ')) || '&mdash;'}</td>
+          <td>${appLabels(u.permissions) || '&mdash;'}</td>
           <td>${esc(new Date(u.created_at).toLocaleDateString())}</td>
           <td class="admin-table-actions">
             <a href="#" class="edit-link">Edit</a>
@@ -143,7 +159,7 @@
       tr.innerHTML = `
         <td>${esc(u.email)}</td>
         <td><input type="checkbox" class="edit-is-admin" ${u.is_admin ? 'checked' : ''} ${u.id === currentUser.id ? 'disabled' : ''}></td>
-        <td><input type="text" class="edit-permissions" value="${esc((u.permissions || []).join(', '))}"></td>
+        <td class="app-checkbox-group">${appCheckboxesHtml('edit-app', u.permissions || [])}</td>
         <td colspan="2">
           <input type="password" class="edit-password" placeholder="New password (optional)" autocomplete="off">
           <a href="#" class="save-link">Save</a>
@@ -159,7 +175,7 @@
       tr.querySelector('.save-link').addEventListener('click', async (e) => {
         e.preventDefault();
         const isAdmin = tr.querySelector('.edit-is-admin').checked;
-        const permissions = permsToArray(tr.querySelector('.edit-permissions').value);
+        const permissions = Array.from(tr.querySelectorAll('.edit-app:checked')).map((el) => el.value);
         const password = tr.querySelector('.edit-password').value;
 
         const body = { isAdmin, permissions };
@@ -187,7 +203,7 @@
 
       const email = document.getElementById('new-email').value.trim();
       const password = document.getElementById('new-password').value;
-      const permissions = permsToArray(document.getElementById('new-permissions').value);
+      const permissions = Array.from(document.querySelectorAll('#new-apps input:checked')).map((el) => el.value);
       const isAdmin = document.getElementById('new-is-admin').checked;
 
       const res = await fetch('/api/users', {
@@ -211,6 +227,8 @@
       await fetch('/api/logout', { method: 'POST' });
       window.location.href = 'index.html';
     });
+
+    document.getElementById('new-apps').innerHTML = appCheckboxesHtml('new-app-checkbox', []);
 
     fetch('/api/me')
       .then((r) => (r.ok ? r.json() : Promise.reject()))

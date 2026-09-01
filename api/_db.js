@@ -29,16 +29,37 @@ let schemaReady;
 
 function ensureSchema() {
   if (!schemaReady) {
-    schemaReady = sql`
-      CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        is_admin BOOLEAN NOT NULL DEFAULT false,
-        permissions TEXT[] NOT NULL DEFAULT '{}',
-        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-      )
-    `;
+    schemaReady = (async () => {
+      await sql`
+        CREATE TABLE IF NOT EXISTS users (
+          id SERIAL PRIMARY KEY,
+          email TEXT UNIQUE NOT NULL,
+          password_hash TEXT NOT NULL,
+          is_admin BOOLEAN NOT NULL DEFAULT false,
+          permissions TEXT[] NOT NULL DEFAULT '{}',
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS files (
+          id SERIAL PRIMARY KEY,
+          filename TEXT NOT NULL,
+          blob_url TEXT NOT NULL,
+          size BIGINT NOT NULL,
+          uploaded_by TEXT NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS notes (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          title TEXT NOT NULL DEFAULT '',
+          content TEXT NOT NULL DEFAULT '',
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        )
+      `;
+    })();
   }
   return schemaReady;
 }

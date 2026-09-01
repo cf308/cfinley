@@ -407,3 +407,192 @@ body {
   color: var(--ink);
   text-decoration: underline;
 }
+
+/* ---- App grid (home screen) ---- */
+
+.app-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+
+.app-tile {
+  display: block;
+  background: #ffffff;
+  padding: 1.75rem 1.5rem;
+  text-decoration: none;
+  color: var(--ink);
+  position: relative;
+  transition: background 0.15s ease;
+}
+
+a.app-tile:hover {
+  background: var(--bg);
+}
+
+.app-tile-disabled {
+  color: var(--ink-soft);
+  cursor: default;
+}
+
+.app-tile-name {
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.app-tile-desc {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.app-tile-badge {
+  margin-top: 0.75rem;
+  display: inline-block;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  border: 1px solid var(--line);
+  padding: 0.15rem 0.5rem;
+}
+
+/* ---- App access checkboxes (admin) ---- */
+
+.app-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.app-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--ink);
+}
+
+.app-checkbox input {
+  width: auto;
+}
+
+td.app-checkbox-group {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  white-space: normal;
+}
+
+/* ---- Notepad ---- */
+
+.notepad-layout {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.notepad-list {
+  width: 220px;
+  flex-shrink: 0;
+}
+
+.notepad-new-btn {
+  width: 100%;
+  margin-bottom: 1.25rem;
+}
+
+.notepad-notes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+
+.notepad-note-item {
+  padding: 0.7rem 0.25rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+
+.notepad-note-item:hover {
+  color: var(--ink);
+}
+
+.notepad-note-item.active {
+  color: var(--ink);
+  font-weight: bold;
+}
+
+.notepad-editor {
+  flex: 1;
+  min-width: 0;
+}
+
+.notepad-title-input {
+  width: 100%;
+  font-family: Georgia, "Times New Roman", Times, serif;
+  font-size: 1.05rem;
+  padding: 0.5rem 0;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  margin-bottom: 1rem;
+}
+
+.notepad-title-input:focus {
+  outline: none;
+  border-color: var(--navy);
+}
+
+.notepad-content-input {
+  width: 100%;
+  min-height: 320px;
+  font-family: Georgia, "Times New Roman", Times, serif;
+  font-size: 0.92rem;
+  line-height: 1.7;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  resize: vertical;
+}
+
+.notepad-content-input:focus {
+  outline: none;
+  border-color: var(--navy);
+}
+
+.notepad-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.notepad-editor-actions a {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+
+.notepad-editor-actions a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .notepad-layout {
+    flex-direction: column;
+  }
+  .notepad-list {
+    width: 100%;
+  }
+}
