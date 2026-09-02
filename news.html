@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C Finley — News</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="status.js" defer></script>
+</head>
+<body>
+  <div class="page">
+    <main class="admin-main">
+      <div class="admin-wrap" id="content" hidden>
+        <div class="admin-header">
+          <div class="doc-wordmark">C&nbsp;FINLEY</div>
+          <div class="admin-header-actions">
+            <a href="dashboard.html">Home</a>
+            <a href="#" id="logout-link">Log out</a>
+          </div>
+        </div>
+
+        <h1 class="admin-title">News</h1>
+
+        <section class="admin-section">
+          <p class="portal-message" id="news-message" role="status" aria-live="polite"></p>
+          <div class="news-list" id="news-list"></div>
+        </section>
+      </div>
+
+      <p class="portal-message" id="loading">Checking session&hellip;</p>
+    </main>
+  </div>
+
+  <script>
+    function esc(s) {
+      const d = document.createElement('div');
+      d.textContent = s == null ? '' : String(s);
+      return d.innerHTML;
+    }
+
+    function timeAgo(iso) {
+      if (!iso) return '';
+      const ms = Date.now() - new Date(iso).getTime();
+      const min = Math.round(ms / 60000);
+      if (min < 60) return min + 'm ago';
+      const hr = Math.round(min / 60);
+      if (hr < 24) return hr + 'h ago';
+      return Math.round(hr / 24) + 'd ago';
+    }
+
+    function loadNews() {
+      const messageEl = document.getElementById('news-message');
+      const list = document.getElementById('news-list');
+      messageEl.textContent = 'Loading news…';
+
+      fetch('/api/news')
+        .then(async (r) => {
+          const data = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(data.error || 'Unable to load news.');
+          return data;
+        })
+        .then((data) => {
+          messageEl.textContent = '';
+          list.innerHTML = '';
+
+          if (!data.articles || data.articles.length === 0) {
+            messageEl.textContent = 'No headlines right now.';
+            return;
+          }
+
+          data.articles.forEach((a) => {
+            const card = document.createElement('a');
+            card.className = 'news-card';
+            card.href = a.link;
+            card.target = '_blank';
+            card.rel = 'noopener noreferrer';
+            card.innerHTML = `
+              ${a.image ? `<img class="news-card-photo" src="${esc(a.image)}" alt="">` : ''}
+              <div class="news-card-body">
+                <div class="news-card-title">${esc(a.title)}</div>
+                ${a.snippet ? `<div class="news-card-snippet">${esc(a.snippet)}</div>` : ''}
+                <div class="news-card-meta">
+                  ${a.sourceIcon ? `<img src="${esc(a.sourceIcon)}" alt="">` : ''}
+                  <span>${esc(a.source || '')}</span>
+                  ${a.publishedAt ? `<span>&middot; ${esc(timeAgo(a.publishedAt))}</span>` : ''}
+                </div>
+              </div>
+            `;
+            list.appendChild(card);
+          });
+        })
+        .catch((err) => {
+          messageEl.textContent = err.message || 'Unable to load news.';
+        });
+    }
+
+    document.getElementById('logout-link').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = 'index.html';
+    });
+
+    fetch('/api/me')
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data) => {
+        if (!data.isAdmin && !(data.permissions || []).includes('news')) {
+          window.location.href = 'dashboard.html';
+          return;
+        }
+        document.getElementById('loading').hidden = true;
+        document.getElementById('content').hidden = false;
+        loadNews();
+      })
+      .catch(() => {
+        window.location.href = 'portal.html';
+      });
+  </script>
+  <script
+    src="https://assistloop.ai/assistloop-widget.js"
+    defer
+    onload="window.AssistLoopWidget && window.AssistLoopWidget.init({ agentId: 'dff24e88-a711-47ff-97f6-31c7b0dbaa6d' })"
+  ></script>
+</body>
+</html>
