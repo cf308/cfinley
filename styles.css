@@ -1130,38 +1130,35 @@ body.home .footer a {
   outline: none;
 }
 
-#adsb-map.leaflet-container {
+#adsb-map.maplibregl-map {
   background: var(--bg);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-#adsb-map .leaflet-tile-pane {
-  filter: brightness(0.5) saturate(0.55);
-}
-
-.adsb-map-dim {
-  position: absolute;
-  top: -150%;
-  left: -150%;
-  width: 400%;
-  height: 400%;
-  background: rgba(8, 9, 11, 0.5);
-  pointer-events: none;
-}
-
-#adsb-map .leaflet-control-attribution {
+#adsb-map .maplibregl-ctrl-attrib {
   background: transparent;
-  color: rgba(139, 141, 146, 0.35);
+  color: rgba(139, 141, 146, 0.4);
   font-size: 0.55rem;
   padding: 0 4px;
 }
 
-#adsb-map .leaflet-control-attribution a {
-  color: rgba(139, 141, 146, 0.45);
+#adsb-map .maplibregl-ctrl-attrib a {
+  color: rgba(139, 141, 146, 0.55);
+}
+
+#adsb-map .maplibregl-ctrl-attrib.maplibregl-compact::after {
+  background-color: rgba(139, 141, 146, 0.4);
+}
+
+#adsb-map .maplibregl-ctrl-attrib-button {
+  opacity: 0.5;
 }
 
 .adsb-plane {
+  width: 12px;
+  height: 12px;
   color: rgba(236, 235, 231, 0.6);
+  cursor: pointer;
   transition: transform 4s linear, color 0.2s ease;
 }
 
@@ -1171,14 +1168,13 @@ body.home .footer a {
 
 .adsb-plane svg {
   display: block;
-  transition: transform 4s linear;
 }
 
 .adsb-plane path {
   fill: currentColor;
 }
 
-.adsb-tooltip.leaflet-tooltip {
+.adsb-tooltip .maplibregl-popup-content {
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--line);
@@ -1190,6 +1186,7 @@ body.home .footer a {
   white-space: nowrap;
 }
 
-.adsb-tooltip.leaflet-tooltip-top::before {
+.adsb-tooltip .maplibregl-popup-tip {
   border-top-color: var(--line);
+  border-bottom-color: var(--line);
 }
