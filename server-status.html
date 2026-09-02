@@ -50,7 +50,12 @@
       return el;
     }
 
-    fetch('/api/status')
+    // credentials: 'omit' deliberately never sends the session cookie, so this
+    // public page always gets the anonymous/vague response - even if you're
+    // logged in elsewhere in the same browser - instead of flipping between
+    // detail levels depending on your login state. The full detail view lives
+    // in the "Server Status" section of /admin.html instead.
+    fetch('/api/status', { credentials: 'omit' })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((data) => {
         const banner = document.getElementById('status-banner');
@@ -58,20 +63,10 @@
         banner.className = 'status-banner ' + (data.operational ? 'ok' : 'down');
 
         const rows = document.getElementById('status-rows');
-
-        if (data.authenticated) {
-          rows.appendChild(
-            row('Database', data.database.ok, data.database.ok ? data.database.latencyMs + ' ms' : 'Unreachable')
-          );
-          data.services.forEach((svc) => {
-            rows.appendChild(row(svc.name, svc.ok, svc.ok ? 'Configured' : 'Not configured'));
-          });
-        } else {
-          rows.appendChild(row('Core Systems', data.database.ok, data.database.ok ? 'Reachable' : 'Unreachable'));
-          rows.appendChild(
-            row('Internal Services', data.services.healthy === data.services.count, data.services.healthy + ' / ' + data.services.count + ' nominal')
-          );
-        }
+        rows.appendChild(row('Core Systems', data.database.ok, data.database.ok ? 'Reachable' : 'Unreachable'));
+        rows.appendChild(
+          row('Internal Services', data.services.healthy === data.services.count, data.services.healthy + ' / ' + data.services.count + ' nominal')
+        );
 
         document.getElementById('status-checked').textContent = 'Checked ' + new Date(data.checkedAt).toLocaleString();
       })

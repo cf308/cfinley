@@ -86,6 +86,13 @@
           </div>
           <p class="portal-message" id="users-message" role="status" aria-live="polite"></p>
         </section>
+
+        <section class="admin-section">
+          <h2><span class="section-index">04</span> Server Status</h2>
+          <div class="status-banner" id="admin-status-banner">Checking&hellip;</div>
+          <div class="status-rows" id="admin-status-rows"></div>
+          <p class="status-checked" id="admin-status-checked"></p>
+        </section>
       </div>
 
       <p class="portal-message" id="loading">Checking session&hellip;</p>
@@ -151,6 +158,44 @@
           `
         )
         .join('');
+    }
+
+    function statusRow(label, ok, detail) {
+      const el = document.createElement('div');
+      el.className = 'status-row';
+      el.innerHTML = `
+        <span class="status-dot ${ok ? 'ok' : ''}"></span>
+        <span class="status-row-label">${esc(label)}</span>
+        <span class="status-row-detail">${esc(detail || '')}</span>
+      `;
+      return el;
+    }
+
+    function loadStatus() {
+      fetch('/api/status')
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((data) => {
+          const banner = document.getElementById('admin-status-banner');
+          banner.textContent = data.operational ? 'All Systems Operational' : 'Degraded';
+          banner.className = 'status-banner ' + (data.operational ? 'ok' : 'down');
+
+          const rows = document.getElementById('admin-status-rows');
+          rows.innerHTML = '';
+          rows.appendChild(
+            statusRow('Database', data.database.ok, data.database.ok ? data.database.latencyMs + ' ms' : 'Unreachable')
+          );
+          (data.services || []).forEach((svc) => {
+            rows.appendChild(statusRow(svc.name, svc.ok, svc.ok ? 'Configured' : 'Not configured'));
+          });
+
+          document.getElementById('admin-status-checked').textContent =
+            'Checked ' + new Date(data.checkedAt).toLocaleString();
+        })
+        .catch(() => {
+          const banner = document.getElementById('admin-status-banner');
+          banner.textContent = 'Unable to reach status service';
+          banner.className = 'status-banner down';
+        });
     }
 
     async function loadUsers() {
@@ -324,6 +369,7 @@
         document.getElementById('loading').hidden = true;
         document.getElementById('content').hidden = false;
         loadUsers();
+        loadStatus();
       })
       .catch(() => {
         window.location.href = 'portal.html';
