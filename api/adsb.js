@@ -35,9 +35,9 @@ module.exports = async (req, res) => {
   const { latitude, longitude } = await getCoords();
 
   try {
-    const url = `https://api.adsb.lol/v2/point/${latitude}/${longitude}/${RADIUS_NM}`;
+    const url = `https://opendata.adsb.fi/api/v3/lat/${latitude}/lon/${longitude}/dist/${RADIUS_NM}`;
     const apiRes = await fetch(url);
-    if (!apiRes.ok) throw new Error('adsb.lol http ' + apiRes.status);
+    if (!apiRes.ok) throw new Error('adsb.fi http ' + apiRes.status);
     const data = await apiRes.json();
 
     const aircraft = Array.isArray(data.ac)
