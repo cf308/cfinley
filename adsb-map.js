@@ -31,6 +31,7 @@
           attributionControl: { compact: true },
         });
       } catch (e) {
+        console.warn('adsb-map: failed to construct map', e);
         return;
       }
 
@@ -45,13 +46,14 @@
             paint: { 'background-color': '#0a0b0d', 'background-opacity': 0.45 },
           });
         } catch (e) {
-          // Style loaded but layer insertion failed - map still shows, just undimmed.
+          console.warn('adsb-map: failed to add dim layer', e);
         }
       });
 
-      map.on('error', function () {
-        // Swallow tile/style errors - the container's own dark background
-        // is an acceptable fallback and the rest of the page is unaffected.
+      map.on('error', function (e) {
+        // Logged, not thrown: the container's own dark background is an
+        // acceptable fallback and the rest of the page stays unaffected.
+        console.warn('adsb-map: map error', e && e.error);
       });
 
       var markers = {};
