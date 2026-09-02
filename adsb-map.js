@@ -37,7 +37,18 @@
 
       map.on('load', function () {
         try {
-          // A solid low-opacity layer on top of the whole style, so geography
+          // Strip the style down to just land vs. water - hide roads, transit,
+          // buildings, boundaries, POIs, and every label, keeping only the
+          // base background fill (land) and the water polygons (coastline).
+          var keepSourceLayers = { water: true };
+          map.getStyle().layers.forEach(function (layer) {
+            if (layer.type === 'background') return;
+            var sourceLayer = layer['source-layer'];
+            if (sourceLayer && keepSourceLayers[sourceLayer]) return;
+            map.setLayoutProperty(layer.id, 'visibility', 'none');
+          });
+
+          // A solid low-opacity layer on top of what's left, so geography
           // reads as barely-there. Markers/popups are DOM elements above the
           // canvas regardless, so this never touches their legibility.
           map.addLayer({
@@ -46,7 +57,7 @@
             paint: { 'background-color': '#0a0b0d', 'background-opacity': 0.45 },
           });
         } catch (e) {
-          console.warn('adsb-map: failed to add dim layer', e);
+          console.warn('adsb-map: failed to simplify/dim style', e);
         }
       });
 
@@ -70,7 +81,7 @@
         var el = document.createElement('div');
         el.className = 'adsb-plane';
         el.innerHTML =
-          '<svg viewBox="0 0 24 24" width="12" height="12"><path d="M12 1 L15 9.5 L23 12 L15 14.5 L12 23 L9 14.5 L1 12 L9 9.5 Z"/></svg>';
+          '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 1 L15 9.5 L23 12 L15 14.5 L12 23 L9 14.5 L1 12 L9 9.5 Z"/></svg>';
 
         var marker = new maplibregl.Marker({ element: el, rotationAlignment: 'map' })
           .setLngLat([ac.lon, ac.lat])
