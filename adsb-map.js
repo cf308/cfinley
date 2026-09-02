@@ -81,7 +81,7 @@
         var el = document.createElement('div');
         el.className = 'adsb-plane';
         el.innerHTML =
-          '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 1 L15 9.5 L23 12 L15 14.5 L12 23 L9 14.5 L1 12 L9 9.5 Z"/></svg>';
+          '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 2 L13.6 9 L22 15 L22 17 L13.6 14.2 L13.6 19.5 L17.5 22 L17.5 23.3 L12 21.7 L6.5 23.3 L6.5 22 L10.4 19.5 L10.4 14.2 L2 17 L2 15 L10.4 9 Z"/></svg>';
 
         var marker = new maplibregl.Marker({ element: el, rotationAlignment: 'map' })
           .setLngLat([ac.lon, ac.lat])
