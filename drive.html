@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C Finley — Drive</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="status.js" defer></script>
+</head>
+<body>
+  <div class="page">
+    <main class="admin-main">
+      <div class="admin-wrap" id="content" hidden>
+        <div class="admin-header">
+          <div class="doc-wordmark">C&nbsp;FINLEY</div>
+          <div class="admin-header-actions">
+            <a href="dashboard.html">Home</a>
+            <a href="#" id="logout-link">Log out</a>
+          </div>
+        </div>
+
+        <h1 class="admin-title">Drive</h1>
+        <p class="eyebrow" style="text-align:left; margin: 0 0 1.25rem;">Arrow keys or A / D to steer. Space to start.</p>
+
+        <div class="drive-hud">
+          <span id="drive-score">Score 0</span>
+          <span id="drive-best">Best 0</span>
+        </div>
+
+        <div class="drive-wrap">
+          <canvas id="drive-canvas" width="400" height="600"></canvas>
+          <div class="drive-overlay" id="drive-overlay">
+            <div class="drive-overlay-title" id="overlay-title">Drive</div>
+            <div class="drive-overlay-score" id="overlay-score"></div>
+            <button class="portal-btn admin-btn" id="overlay-btn">Start</button>
+          </div>
+        </div>
+      </div>
+
+      <p class="portal-message" id="loading">Checking session&hellip;</p>
+    </main>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('drive-canvas');
+    const ctx = canvas.getContext('2d');
+
+    const ROAD_WIDTH = 300;
+    const CAR_W = 34;
+    const CAR_H = 54;
+    const PLAYER_Y = canvas.height - 90;
+
+    let state = 'idle'; // idle | playing | gameover
+    let playerX = canvas.width / 2;
+    let obstacles = [];
+    let score = 0;
+    let best = Number(localStorage.getItem('cf-drive-best') || 0);
+    let spawnTimer = 0;
+    let lastTime = null;
+    const keys = {};
+
+    function roadBounds() {
+      const left = (canvas.width - ROAD_WIDTH) / 2;
+      return { left, right: left + ROAD_WIDTH };
+    }
+
+    function roundRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    function drawCar(x, y, w, h, color) {
+      ctx.fillStyle = color;
+      roundRect(x, y, w, h, 6);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(10, 11, 13, 0.45)';
+      roundRect(x + w * 0.15, y + h * 0.15, w * 0.7, h * 0.3, 3);
+      ctx.fill();
+    }
+
+    function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
+      return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+    }
+
+    function spawnObstacle() {
+      const { left } = roadBounds();
+      const w = 34;
+      const h = 54;
+      const x = left + 10 + Math.random() * (ROAD_WIDTH - 20 - w);
+      const color = Math.random() < 0.5 ? '#c96a6a' : '#d9a441';
+      obstacles.push({ x, y: -h, w, h, color });
+    }
+
+    function updateHud() {
+      document.getElementById('drive-score').textContent = 'Score ' + Math.floor(score);
+      document.getElementById('drive-best').textContent = 'Best ' + best;
+    }
+
+    function startGame() {
+      state = 'playing';
+      playerX = canvas.width / 2;
+      obstacles = [];
+      score = 0;
+      spawnTimer = 0;
+      document.getElementById('drive-overlay').hidden = true;
+      updateHud();
+    }
+
+    function gameOver() {
+      state = 'gameover';
+      const rounded = Math.floor(score);
+      if (rounded > best) {
+        best = rounded;
+        localStorage.setItem('cf-drive-best', String(best));
+      }
+      updateHud();
+      document.getElementById('overlay-title').textContent = 'Crashed';
+      document.getElementById('overlay-score').textContent = 'Score ' + rounded + '  ·  Best ' + best;
+      document.getElementById('overlay-btn').textContent = 'Play Again';
+      document.getElementById('drive-overlay').hidden = false;
+    }
+
+    function update(dt) {
+      const moveSpeed = 260;
+      if (keys.ArrowLeft || keys.a) playerX -= moveSpeed * dt;
+      if (keys.ArrowRight || keys.d) playerX += moveSpeed * dt;
+      const { left, right } = roadBounds();
+      playerX = Math.max(left + CAR_W / 2, Math.min(right - CAR_W / 2, playerX));
+
+      const scrollSpeed = 160 + score * 4;
+      score += dt * 10;
+
+      spawnTimer += dt;
+      const interval = Math.max(0.5, 1.1 - score / 400);
+      if (spawnTimer > interval) {
+        spawnTimer = 0;
+        spawnObstacle();
+      }
+
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const o = obstacles[i];
+        o.y += scrollSpeed * dt;
+        if (o.y > canvas.height + 60) {
+          obstacles.splice(i, 1);
+          continue;
+        }
+        if (
+          rectsOverlap(
+            playerX - CAR_W / 2,
+            PLAYER_Y - CAR_H / 2,
+            CAR_W,
+            CAR_H,
+            o.x,
+            o.y,
+            o.w,
+            o.h
+          )
+        ) {
+          gameOver();
+        }
+      }
+
+      updateHud();
+    }
+
+    function draw() {
+      ctx.fillStyle = '#0a0b0d';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const { left } = roadBounds();
+      ctx.fillStyle = '#16181c';
+      ctx.fillRect(left, 0, ROAD_WIDTH, canvas.height);
+
+      ctx.strokeStyle = 'rgba(236, 235, 231, 0.25)';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([20, 18]);
+      const laneW = ROAD_WIDTH / 3;
+      const offset = (performance.now() / 6) % 38;
+      for (let lane = 1; lane < 3; lane++) {
+        const x = left + laneW * lane;
+        ctx.beginPath();
+        ctx.moveTo(x, -38 + offset);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+
+      obstacles.forEach((o) => drawCar(o.x, o.y, o.w, o.h, o.color));
+
+      if (state !== 'idle') {
+        drawCar(playerX - CAR_W / 2, PLAYER_Y - CAR_H / 2, CAR_W, CAR_H, '#ecebe7');
+      }
+    }
+
+    function loop(t) {
+      if (lastTime == null) lastTime = t;
+      const dt = Math.min((t - lastTime) / 1000, 0.05);
+      lastTime = t;
+      if (state === 'playing') update(dt);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener('keydown', (e) => {
+      keys[e.key] = true;
+      if (e.key === ' ' && state !== 'playing') {
+        e.preventDefault();
+        startGame();
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault();
+      }
+    });
+    window.addEventListener('keyup', (e) => {
+      keys[e.key] = false;
+    });
+
+    document.getElementById('overlay-btn').addEventListener('click', startGame);
+
+    updateHud();
+    requestAnimationFrame(loop);
+
+    document.getElementById('logout-link').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = 'index.html';
+    });
+
+    fetch('/api/me')
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data) => {
+        if (!data.isAdmin && !(data.permissions || []).includes('drive')) {
+          window.location.href = 'dashboard.html';
+          return;
+        }
+        document.getElementById('loading').hidden = true;
+        document.getElementById('content').hidden = false;
+      })
+      .catch(() => {
+        window.location.href = 'portal.html';
+      });
+  </script>
+  <script
+    src="https://assistloop.ai/assistloop-widget.js"
+    defer
+    onload="window.AssistLoopWidget && window.AssistLoopWidget.init({ agentId: 'dff24e88-a711-47ff-97f6-31c7b0dbaa6d' })"
+  ></script>
+</body>
+</html>
