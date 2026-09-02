@@ -1108,3 +1108,88 @@ td .status-dot {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* ---- ADS-B background map (homepage) ---- */
+
+body.home .page {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+body.home .btn,
+body.home .footer a {
+  pointer-events: auto;
+}
+
+#adsb-map {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: var(--bg);
+  outline: none;
+}
+
+#adsb-map.leaflet-container {
+  background: var(--bg);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+#adsb-map .leaflet-tile-pane {
+  filter: brightness(0.5) saturate(0.55);
+}
+
+.adsb-map-dim {
+  position: absolute;
+  top: -150%;
+  left: -150%;
+  width: 400%;
+  height: 400%;
+  background: rgba(8, 9, 11, 0.5);
+  pointer-events: none;
+}
+
+#adsb-map .leaflet-control-attribution {
+  background: transparent;
+  color: rgba(139, 141, 146, 0.35);
+  font-size: 0.55rem;
+  padding: 0 4px;
+}
+
+#adsb-map .leaflet-control-attribution a {
+  color: rgba(139, 141, 146, 0.45);
+}
+
+.adsb-plane {
+  color: rgba(236, 235, 231, 0.6);
+  transition: transform 4s linear, color 0.2s ease;
+}
+
+.adsb-plane:hover {
+  color: rgba(236, 235, 231, 0.95);
+}
+
+.adsb-plane svg {
+  display: block;
+  transition: transform 4s linear;
+}
+
+.adsb-plane path {
+  fill: currentColor;
+}
+
+.adsb-tooltip.leaflet-tooltip {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  padding: 0.3rem 0.55rem;
+  box-shadow: none;
+  white-space: nowrap;
+}
+
+.adsb-tooltip.leaflet-tooltip-top::before {
+  border-top-color: var(--line);
+}
