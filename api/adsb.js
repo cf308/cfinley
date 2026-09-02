@@ -54,11 +54,14 @@ module.exports = async (req, res) => {
           }))
       : [];
 
+    console.log('adsb: fetched', aircraft.length, 'aircraft near', latitude, longitude, 'raw ac count', Array.isArray(data.ac) ? data.ac.length : 'n/a (not an array)');
+
     cache = { at: Date.now(), aircraft };
     res.status(200).json({ aircraft });
   } catch (err) {
     // Serve the last known-good positions rather than clearing the map;
     // the background is designed to keep working with zero aircraft anyway.
+    console.error('adsb: upstream fetch failed', err && err.message);
     res.status(200).json({ aircraft: cache.aircraft });
   }
 };

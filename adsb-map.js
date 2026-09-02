@@ -100,6 +100,7 @@
             return r.ok ? r.json() : Promise.reject(new Error('adsb http ' + r.status));
           })
           .then(function (data) {
+            console.log('adsb-map: got', (data.aircraft || []).length, 'aircraft');
             var seen = {};
 
             (data.aircraft || []).forEach(function (ac) {
@@ -123,8 +124,9 @@
               }
             });
           })
-          .catch(function () {
+          .catch(function (e) {
             // Leave existing markers in place; the next poll will retry.
+            console.warn('adsb-map: refresh failed', e);
           });
       }
 
