@@ -802,6 +802,76 @@ td.app-checkbox-group {
   color: var(--ink-soft);
 }
 
+/* ---- Connect Four ---- */
+
+.c4-lobby {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.c4-lobby-option {
+  flex: 1;
+  min-width: 200px;
+}
+
+.c4-status {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  margin-bottom: 1rem;
+  min-height: 1.3em;
+}
+
+.c4-board {
+  display: flex;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: 8px;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+.c4-column {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.c4-column.clickable {
+  cursor: pointer;
+}
+
+.c4-column.clickable:hover {
+  background: rgba(236, 235, 231, 0.06);
+}
+
+.c4-cell {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+
+.c4-cell.p1 {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.c4-cell.p2 {
+  background: #c96a6a;
+  border-color: #c96a6a;
+}
+
+.c4-code-line {
+  text-align: center;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  margin-top: 1rem;
+}
+
 /* ---- Wordle ---- */
 
 .wordle-wrap {

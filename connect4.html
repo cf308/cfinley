@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C Finley — Connect Four</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="status.js" defer></script>
+</head>
+<body>
+  <div class="page">
+    <main class="admin-main">
+      <div class="admin-wrap" id="content" hidden>
+        <div class="admin-header">
+          <div class="doc-wordmark">C&nbsp;FINLEY</div>
+          <div class="admin-header-actions">
+            <a href="dashboard.html">Home</a>
+            <a href="#" id="logout-link">Log out</a>
+          </div>
+        </div>
+
+        <h1 class="admin-title">Connect Four</h1>
+
+        <section class="admin-section" id="lobby-section">
+          <div class="c4-lobby">
+            <div class="c4-lobby-option">
+              <button class="portal-btn admin-btn" id="create-btn">New Room</button>
+            </div>
+            <div class="c4-lobby-option">
+              <form id="join-form" class="admin-form">
+                <div class="field">
+                  <label for="join-code">Room Code</label>
+                  <input type="text" id="join-code" maxlength="4" autocomplete="off" autocapitalize="characters" placeholder="e.g. 7F3K" style="text-transform:uppercase;">
+                </div>
+                <button type="submit" class="portal-btn admin-btn">Join Room</button>
+              </form>
+            </div>
+          </div>
+          <p class="portal-message" id="lobby-message" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="admin-section" id="game-section" hidden>
+          <div class="c4-status" id="c4-status"></div>
+          <div class="c4-board" id="c4-board"></div>
+          <p class="c4-code-line" id="c4-code-line"></p>
+          <button class="portal-btn admin-btn" id="leave-btn" style="margin-top:1rem;">Leave Room</button>
+        </section>
+      </div>
+
+      <p class="portal-message" id="loading">Checking session&hellip;</p>
+    </main>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'cf-connect4-code';
+    let pollTimer = null;
+    let currentCode = null;
+
+    function esc(s) {
+      const d = document.createElement('div');
+      d.textContent = s == null ? '' : String(s);
+      return d.innerHTML;
+    }
+
+    function showLobby() {
+      clearInterval(pollTimer);
+      pollTimer = null;
+      currentCode = null;
+      localStorage.removeItem(STORAGE_KEY);
+      document.getElementById('lobby-section').hidden = false;
+      document.getElementById('game-section').hidden = true;
+    }
+
+    function renderBoard(state) {
+      const board = document.getElementById('c4-board');
+      board.innerHTML = '';
+      for (let col = 0; col < 7; col++) {
+        const colEl = document.createElement('div');
+        colEl.className = 'c4-column';
+        for (let row = 0; row < 6; row++) {
+          const cell = state.board[row * 7 + col];
+          const dot = document.createElement('div');
+          dot.className = 'c4-cell' + (cell === 1 ? ' p1' : cell === 2 ? ' p2' : '');
+          colEl.appendChild(dot);
+        }
+        if (state.yourTurn) {
+          colEl.classList.add('clickable');
+          colEl.addEventListener('click', () => makeMove(col));
+        }
+        board.appendChild(colEl);
+      }
+    }
+
+    function renderState(state) {
+      document.getElementById('c4-code-line').textContent = 'Room code: ' + state.code;
+      renderBoard(state);
+
+      const statusEl = document.getElementById('c4-status');
+      if (state.waitingForOpponent) {
+        statusEl.textContent = 'Waiting for an opponent to join with code ' + state.code + '…';
+      } else if (state.status === 'finished') {
+        clearInterval(pollTimer);
+        pollTimer = null;
+        if (state.winner === 0) {
+          statusEl.textContent = "It's a draw.";
+        } else if (state.winner === state.you) {
+          statusEl.textContent = 'You won!';
+        } else {
+          statusEl.textContent = 'Your opponent won.';
+        }
+      } else if (state.yourTurn) {
+        statusEl.textContent = 'Your turn — click a column to drop a piece.';
+      } else {
+        statusEl.textContent = "Opponent's turn…";
+      }
+    }
+
+    function refresh(code) {
+      fetch('/api/connect4?code=' + encodeURIComponent(code))
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then(renderState)
+        .catch(() => {});
+    }
+
+    function enterGame(state) {
+      currentCode = state.code;
+      localStorage.setItem(STORAGE_KEY, state.code);
+      document.getElementById('lobby-section').hidden = true;
+      document.getElementById('game-section').hidden = false;
+      renderState(state);
+
+      if (state.status !== 'finished') {
+        clearInterval(pollTimer);
+        pollTimer = setInterval(() => refresh(state.code), 1500);
+      }
+    }
+
+    function makeMove(column) {
+      fetch('/api/connect4', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'move', code: currentCode, column }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.code) renderState(data);
+        });
+    }
+
+    document.getElementById('create-btn').addEventListener('click', () => {
+      const messageEl = document.getElementById('lobby-message');
+      messageEl.textContent = '';
+      fetch('/api/connect4', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create' }),
+      })
+        .then(async (r) => {
+          const data = await r.json();
+          if (!r.ok) throw new Error(data.error || 'Unable to create room.');
+          return data;
+        })
+        .then(enterGame)
+        .catch((err) => {
+          messageEl.textContent = err.message;
+        });
+    });
+
+    document.getElementById('join-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const messageEl = document.getElementById('lobby-message');
+      messageEl.textContent = '';
+      const code = document.getElementById('join-code').value.trim().toUpperCase();
+      if (!code) return;
+
+      fetch('/api/connect4', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'join', code }),
+      })
+        .then(async (r) => {
+          const data = await r.json();
+          if (!r.ok) throw new Error(data.error || 'Unable to join room.');
+          return data;
+        })
+        .then(enterGame)
+        .catch((err) => {
+          messageEl.textContent = err.message;
+        });
+    });
+
+    document.getElementById('leave-btn').addEventListener('click', showLobby);
+
+    document.getElementById('logout-link').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = 'index.html';
+    });
+
+    fetch('/api/me')
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data) => {
+        if (!data.isAdmin && !(data.permissions || []).includes('connect4')) {
+          window.location.href = 'dashboard.html';
+          return;
+        }
+        document.getElementById('loading').hidden = true;
+        document.getElementById('content').hidden = false;
+
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          fetch('/api/connect4?code=' + encodeURIComponent(saved))
+            .then((r) => (r.ok ? r.json() : Promise.reject()))
+            .then(enterGame)
+            .catch(() => localStorage.removeItem(STORAGE_KEY));
+        }
+      })
+      .catch(() => {
+        window.location.href = 'portal.html';
+      });
+  </script>
+  <script
+    src="https://assistloop.ai/assistloop-widget.js"
+    defer
+    onload="window.AssistLoopWidget && window.AssistLoopWidget.init({ agentId: 'dff24e88-a711-47ff-97f6-31c7b0dbaa6d' })"
+  ></script>
+</body>
+</html>
