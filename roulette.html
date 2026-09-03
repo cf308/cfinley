@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C Finley — Roulette</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="status.js" defer></script>
+</head>
+<body>
+  <div class="page">
+    <main class="admin-main">
+      <div class="admin-wrap" id="content" hidden>
+        <div class="admin-header">
+          <div class="doc-wordmark">C&nbsp;FINLEY</div>
+          <div class="admin-header-actions">
+            <a href="dashboard.html">Home</a>
+            <a href="#" id="logout-link">Log out</a>
+          </div>
+        </div>
+
+        <h1 class="admin-title">Roulette</h1>
+
+        <div class="rl-hud">
+          <span id="rl-balance">Balance 0</span>
+          <span id="rl-stake">Staked 0</span>
+        </div>
+
+        <div class="rl-wheel-wrap">
+          <div class="rl-pointer"></div>
+          <svg id="rl-wheel" viewBox="0 0 300 300"></svg>
+          <div class="rl-hub" id="rl-hub"></div>
+        </div>
+
+        <p class="rl-result" id="rl-result">&nbsp;</p>
+
+        <div class="rl-table">
+          <div class="rl-grid" id="rl-grid"></div>
+          <div class="rl-outside" id="rl-outside"></div>
+        </div>
+
+        <div class="rl-controls">
+          <div class="rl-chips" id="rl-chips"></div>
+          <button class="portal-btn admin-btn" id="rl-clear-btn" type="button">Clear Bets</button>
+          <button class="portal-btn admin-btn" id="rl-spin-btn" type="button">Spin</button>
+        </div>
+        <p class="portal-message" id="rl-message" role="status" aria-live="polite"></p>
+      </div>
+
+      <p class="portal-message" id="loading">Checking session&hellip;</p>
+    </main>
+  </div>
+
+  <script>
+    const SVGNS = 'http://www.w3.org/2000/svg';
+    const WHEEL_ORDER = [
+      0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18,
+      29, 7, 28, 12, 35, 3, 26,
+    ];
+    const RED_NUMBERS = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
+    const CHIP_VALUES = [10, 25, 100, 500];
+
+    let balance = 0;
+    let selectedChip = CHIP_VALUES[0];
+    let bets = {}; // key -> amount
+    let spinning = false;
+    let wheelRotation = 0;
+
+    function colorOf(n) {
+      if (n === 0) return 'green';
+      return RED_NUMBERS.has(n) ? 'red' : 'black';
+    }
+
+    function polar(cx, cy, r, angleDeg) {
+      const rad = ((angleDeg - 90) * Math.PI) / 180;
+      return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+    }
+
+    function wedgePath(cx, cy, rOuter, rInner, startAngle, endAngle) {
+      const p1 = polar(cx, cy, rOuter, endAngle);
+      const p2 = polar(cx, cy, rOuter, startAngle);
+      const p3 = polar(cx, cy, rInner, startAngle);
+      const p4 = polar(cx, cy, rInner, endAngle);
+      const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+      return [
+        `M ${p1.x} ${p1.y}`,
+        `A ${rOuter} ${rOuter} 0 ${largeArc} 0 ${p2.x} ${p2.y}`,
+        `L ${p3.x} ${p3.y}`,
+        `A ${rInner} ${rInner} 0 ${largeArc} 1 ${p4.x} ${p4.y}`,
+        'Z',
+      ].join(' ');
+    }
+
+    function buildWheel() {
+      const svg = document.getElementById('rl-wheel');
+      const group = document.createElementNS(SVGNS, 'g');
+      group.setAttribute('id', 'rl-wheel-group');
+      const cx = 150;
+      const cy = 150;
+      const rOuter = 145;
+      const rInner = 42;
+      const wedgeAngle = 360 / WHEEL_ORDER.length;
+
+      WHEEL_ORDER.forEach((num, i) => {
+        const start = i * wedgeAngle;
+        const end = start + wedgeAngle;
+        const path = document.createElementNS(SVGNS, 'path');
+        path.setAttribute('d', wedgePath(cx, cy, rOuter, rInner, start, end));
+        const color = colorOf(num);
+        path.setAttribute(
+          'fill',
+          color === 'green' ? '#3a8f5b' : color === 'red' ? '#b23b3b' : '#1b1c1f'
+        );
+        path.setAttribute('stroke', '#0a0b0d');
+        path.setAttribute('stroke-width', '1');
+        group.appendChild(path);
+
+        const labelPos = polar(cx, cy, (rOuter + rInner) / 2 + 18, start + wedgeAngle / 2);
+        const text = document.createElementNS(SVGNS, 'text');
+        text.setAttribute('x', labelPos.x);
+        text.setAttribute('y', labelPos.y);
+        text.setAttribute('fill', '#ecebe7');
+        text.setAttribute('font-size', '11');
+        text.setAttribute('font-family', 'Inter, sans-serif');
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('dominant-baseline', 'middle');
+        text.setAttribute('transform', `rotate(${start + wedgeAngle / 2}, ${labelPos.x}, ${labelPos.y})`);
+        text.textContent = String(num);
+        group.appendChild(text);
+      });
+
+      const rim = document.createElementNS(SVGNS, 'circle');
+      rim.setAttribute('cx', cx);
+      rim.setAttribute('cy', cy);
+      rim.setAttribute('r', rOuter);
+      rim.setAttribute('fill', 'none');
+      rim.setAttribute('stroke', '#d9a441');
+      rim.setAttribute('stroke-width', '3');
+      group.appendChild(rim);
+
+      svg.appendChild(group);
+    }
+
+    function spinWheelTo(number) {
+      const group = document.getElementById('rl-wheel-group');
+      const index = WHEEL_ORDER.indexOf(number);
+      const wedgeAngle = 360 / WHEEL_ORDER.length;
+      const centerAngle = index * wedgeAngle + wedgeAngle / 2;
+      const targetMod = (360 - centerAngle + 360) % 360;
+      const extraSpins = 7 * 360;
+      const base = Math.ceil((wheelRotation + extraSpins) / 360) * 360;
+      wheelRotation = base + targetMod;
+      group.style.transform = `rotate(${wheelRotation}deg)`;
+    }
+
+    function esc(s) {
+      const d = document.createElement('div');
+      d.textContent = s == null ? '' : String(s);
+      return d.innerHTML;
+    }
+
+    function betLabel(key) {
+      if (key.startsWith('straight:')) return key.split(':')[1];
+      return { red: 'Red', black: 'Black', odd: 'Odd', even: 'Even', low: '1-18', high: '19-36', dozen1: '1st 12', dozen2: '2nd 12', dozen3: '3rd 12' }[key] || key;
+    }
+
+    function totalStake() {
+      return Object.values(bets).reduce((s, v) => s + v, 0);
+    }
+
+    function updateHud() {
+      document.getElementById('rl-balance').textContent = 'Balance ' + balance;
+      document.getElementById('rl-stake').textContent = 'Staked ' + totalStake();
+    }
+
+    function chipBadge(key) {
+      const amount = bets[key];
+      if (!amount) return '';
+      return `<span class="rl-chip-badge">${amount}</span>`;
+    }
+
+    function renderBetSpots() {
+      document.querySelectorAll('[data-bet]').forEach((el) => {
+        const key = el.dataset.bet;
+        const existing = el.querySelector('.rl-chip-badge');
+        if (existing) existing.remove();
+        if (bets[key]) {
+          const badge = document.createElement('span');
+          badge.className = 'rl-chip-badge';
+          badge.textContent = bets[key];
+          el.appendChild(badge);
+        }
+      });
+      updateHud();
+    }
+
+    function placeBet(key) {
+      if (spinning) return;
+      const current = totalStake();
+      if (current + selectedChip > balance) return;
+      bets[key] = (bets[key] || 0) + selectedChip;
+      renderBetSpots();
+    }
+
+    function buildGrid() {
+      const grid = document.getElementById('rl-grid');
+      grid.innerHTML = '';
+
+      const zero = document.createElement('div');
+      zero.className = 'rl-cell rl-zero green';
+      zero.textContent = '0';
+      zero.dataset.bet = 'straight:0';
+      zero.addEventListener('click', () => placeBet('straight:0'));
+      grid.appendChild(zero);
+
+      const numbers = document.createElement('div');
+      numbers.className = 'rl-numbers';
+      for (let row = 2; row >= 0; row--) {
+        for (let col = 0; col < 12; col++) {
+          const n = col * 3 + row + 1;
+          const cell = document.createElement('div');
+          cell.className = 'rl-cell ' + colorOf(n);
+          cell.textContent = n;
+          cell.dataset.bet = 'straight:' + n;
+          cell.addEventListener('click', () => placeBet('straight:' + n));
+          numbers.appendChild(cell);
+        }
+      }
+      grid.appendChild(numbers);
+    }
+
+    function buildOutsideBets() {
+      const outside = document.getElementById('rl-outside');
+      const spots = [
+        ['low', '1 – 18'],
+        ['even', 'Even'],
+        ['red', 'Red'],
+        ['black', 'Black'],
+        ['odd', 'Odd'],
+        ['high', '19 – 36'],
+        ['dozen1', '1st 12'],
+        ['dozen2', '2nd 12'],
+        ['dozen3', '3rd 12'],
+      ];
+      outside.innerHTML = '';
+      spots.forEach(([key, label]) => {
+        const el = document.createElement('div');
+        el.className = 'rl-cell rl-outside-cell ' + (key === 'red' || key === 'black' ? key : '');
+        el.textContent = label;
+        el.dataset.bet = key;
+        el.addEventListener('click', () => placeBet(key));
+        outside.appendChild(el);
+      });
+    }
+
+    function buildChips() {
+      const wrap = document.getElementById('rl-chips');
+      wrap.innerHTML = '';
+      CHIP_VALUES.forEach((value) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'rl-chip' + (value === selectedChip ? ' selected' : '');
+        chip.textContent = value;
+        chip.addEventListener('click', () => {
+          selectedChip = value;
+          buildChips();
+        });
+        wrap.appendChild(chip);
+      });
+    }
+
+    function clearBets() {
+      if (spinning) return;
+      bets = {};
+      renderBetSpots();
+    }
+
+    function spin() {
+      if (spinning) return;
+      const stake = totalStake();
+      if (stake === 0) {
+        document.getElementById('rl-message').textContent = 'Place a bet first.';
+        return;
+      }
+
+      const payload = Object.entries(bets).map(([key, amount]) => {
+        if (key.startsWith('straight:')) {
+          return { type: 'straight', value: Number(key.split(':')[1]), amount };
+        }
+        return { type: key, amount };
+      });
+
+      spinning = true;
+      document.getElementById('rl-spin-btn').disabled = true;
+      document.getElementById('rl-message').textContent = '';
+      document.getElementById('rl-result').textContent = 'Spinning…';
+
+      fetch('/api/roulette', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'spin', bets: payload }),
+      })
+        .then(async (r) => {
+          const data = await r.json();
+          if (!r.ok) throw new Error(data.error || 'Spin failed.');
+          return data;
+        })
+        .then((data) => {
+          spinWheelTo(data.number);
+          const group = document.getElementById('rl-wheel-group');
+          const onDone = () => {
+            group.removeEventListener('transitionend', onDone);
+            spinning = false;
+            document.getElementById('rl-spin-btn').disabled = false;
+            balance = data.balance;
+            const netWin = data.results.reduce((s, r) => s + r.payout, 0) - stake;
+            const colorWord = data.color.charAt(0).toUpperCase() + data.color.slice(1);
+            document.getElementById('rl-result').textContent =
+              data.number + ' ' + colorWord + (netWin >= 0 ? ' · +' + netWin : ' · ' + netWin);
+            bets = {};
+            renderBetSpots();
+          };
+          group.addEventListener('transitionend', onDone);
+        })
+        .catch((err) => {
+          spinning = false;
+          document.getElementById('rl-spin-btn').disabled = false;
+          document.getElementById('rl-result').textContent = ' ';
+          document.getElementById('rl-message').textContent = err.message;
+        });
+    }
+
+    document.getElementById('rl-clear-btn').addEventListener('click', clearBets);
+    document.getElementById('rl-spin-btn').addEventListener('click', spin);
+
+    document.getElementById('logout-link').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = 'index.html';
+    });
+
+    buildWheel();
+    buildGrid();
+    buildOutsideBets();
+    buildChips();
+
+    fetch('/api/me')
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data) => {
+        if (!data.isAdmin && !(data.permissions || []).includes('roulette')) {
+          window.location.href = 'dashboard.html';
+          return;
+        }
+        document.getElementById('loading').hidden = true;
+        document.getElementById('content').hidden = false;
+
+        return fetch('/api/roulette').then((r) => (r.ok ? r.json() : Promise.reject()));
+      })
+      .then((data) => {
+        if (!data) return;
+        balance = data.balance;
+        updateHud();
+      })
+      .catch(() => {
+        window.location.href = 'portal.html';
+      });
+  </script>
+  <script
+    src="https://assistloop.ai/assistloop-widget.js"
+    defer
+    onload="window.AssistLoopWidget && window.AssistLoopWidget.init({ agentId: 'dff24e88-a711-47ff-97f6-31c7b0dbaa6d' })"
+  ></script>
+</body>
+</html>

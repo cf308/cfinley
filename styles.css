@@ -802,6 +802,185 @@ td.app-checkbox-group {
   color: var(--ink-soft);
 }
 
+/* ---- Roulette ---- */
+
+.rl-hud {
+  display: flex;
+  gap: 1.5rem;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  margin-bottom: 1.25rem;
+}
+
+.rl-wheel-wrap {
+  position: relative;
+  width: 300px;
+  margin: 0 auto 0.75rem;
+}
+
+#rl-wheel {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+#rl-wheel-group {
+  transition: transform 4.5s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+  transform-origin: 150px 150px;
+}
+
+.rl-pointer {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-top: 16px solid #d9a441;
+  z-index: 2;
+}
+
+.rl-hub {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 60px;
+  height: 60px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #2a2c31, #0a0b0d);
+  border: 2px solid #d9a441;
+}
+
+.rl-result {
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin: 0 0 1.5rem;
+  min-height: 1.4em;
+}
+
+.rl-table {
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.rl-grid {
+  display: flex;
+  gap: 3px;
+}
+
+.rl-numbers {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 3px;
+}
+
+.rl-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  user-select: none;
+}
+
+.rl-zero {
+  width: 34px;
+}
+
+.rl-cell.red {
+  background: #b23b3b;
+}
+
+.rl-cell.black {
+  background: #1b1c1f;
+}
+
+.rl-cell.green {
+  background: #3a8f5b;
+}
+
+.rl-outside {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 3px;
+  margin-top: 3px;
+}
+
+.rl-outside-cell {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: 0.72rem;
+  padding: 0.6rem 0.3rem;
+}
+
+.rl-outside-cell.red {
+  background: #b23b3b;
+}
+
+.rl-outside-cell.black {
+  background: #1b1c1f;
+}
+
+.rl-chip-badge {
+  position: absolute;
+  bottom: -6px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 50%;
+  background: #d9a441;
+  color: #0a0b0d;
+  font-size: 0.62rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #0a0b0d;
+}
+
+.rl-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+}
+
+.rl-chips {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.rl-chip {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px dashed rgba(236, 235, 231, 0.4);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.rl-chip.selected {
+  border-style: solid;
+  border-color: #d9a441;
+  color: #d9a441;
+}
+
 /* ---- Connect Four ---- */
 
 .c4-lobby {

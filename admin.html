@@ -88,7 +88,24 @@
         </section>
 
         <section class="admin-section">
-          <h2><span class="section-index">04</span> Server Status</h2>
+          <h2><span class="section-index">04</span> Roulette Balances</h2>
+          <div class="admin-table-wrap">
+            <table class="admin-table" id="roulette-table">
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Balance</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="roulette-tbody"></tbody>
+            </table>
+          </div>
+          <p class="portal-message" id="roulette-message" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="admin-section">
+          <h2><span class="section-index">05</span> Server Status</h2>
           <div class="status-banner" id="admin-status-banner">Checking&hellip;</div>
           <div class="status-rows" id="admin-status-rows"></div>
           <p class="status-checked" id="admin-status-checked"></p>
@@ -112,6 +129,7 @@
       { id: 'news', label: 'News' },
       { id: 'drive', label: 'Drive' },
       { id: 'connect4', label: 'Connect Four' },
+      { id: 'roulette', label: 'Roulette' },
       { id: 'adsb', label: 'ADS-B Exchange (coming soon)' },
     ];
 
@@ -211,6 +229,47 @@
       users = data.users;
       renderStats(data.stats);
       renderUsers();
+      renderRoulette();
+    }
+
+    function renderRoulette() {
+      const tbody = document.getElementById('roulette-tbody');
+      tbody.innerHTML = '';
+
+      users.forEach((u) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${esc(u.email)}</td>
+          <td><input type="number" class="roulette-balance-input" min="0" step="1" value="${esc(u.roulette_balance)}" style="width:7rem;"></td>
+          <td class="admin-table-actions"><a href="#" class="save-link">Save</a></td>
+        `;
+        tbody.appendChild(tr);
+
+        tr.querySelector('.save-link').addEventListener('click', async (e) => {
+          e.preventDefault();
+          const input = tr.querySelector('.roulette-balance-input');
+          const value = Number(input.value);
+          const messageEl = document.getElementById('roulette-message');
+
+          if (!Number.isInteger(value) || value < 0) {
+            messageEl.textContent = 'Balance must be a non-negative whole number.';
+            return;
+          }
+
+          const res = await fetch('/api/users?id=' + u.id, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rouletteBalance: value }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            messageEl.textContent = data.error || 'Update failed.';
+            return;
+          }
+          messageEl.textContent = 'Saved.';
+          u.roulette_balance = data.user.roulette_balance;
+        });
+      });
     }
 
     function renderUsers() {

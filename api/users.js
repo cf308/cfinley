@@ -21,7 +21,11 @@ async function handleCollection(req, res) {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
     const { rows } = await sql`
-      SELECT id, email, is_admin, permissions, created_at, last_login_at FROM users ORDER BY created_at ASC
+      SELECT u.id, u.email, u.is_admin, u.permissions, u.created_at, u.last_login_at,
+             COALESCE(r.balance, 1000) AS roulette_balance
+      FROM users u
+      LEFT JOIN roulette_balances r ON r.user_id = u.id
+      ORDER BY u.created_at ASC
     `;
 
     const [{ count: totalFiles }] = (await sql`SELECT COUNT(*)::int AS count FROM files`).rows;
@@ -80,7 +84,7 @@ async function handleItem(req, res, id) {
   if (!admin) return;
 
   if (req.method === 'PATCH') {
-    const { isAdmin, permissions, password } = req.body || {};
+    const { isAdmin, permissions, password, rouletteBalance } = req.body || {};
 
     if (id === admin.id && isAdmin === false) {
       res.status(400).json({ error: 'You cannot remove your own admin access.' });
@@ -105,8 +109,23 @@ async function handleItem(req, res, id) {
       await sql`UPDATE users SET permissions = ${perms}::text[] WHERE id = ${id}`;
     }
 
+    if (rouletteBalance !== undefined) {
+      if (!Number.isInteger(rouletteBalance) || rouletteBalance < 0) {
+        res.status(400).json({ error: 'Balance must be a non-negative whole number.' });
+        return;
+      }
+      await sql`
+        INSERT INTO roulette_balances (user_id, balance, updated_at) VALUES (${id}, ${rouletteBalance}, now())
+        ON CONFLICT (user_id) DO UPDATE SET balance = ${rouletteBalance}, updated_at = now()
+      `;
+    }
+
     const { rows } = await sql`
-      SELECT id, email, is_admin, permissions, created_at FROM users WHERE id = ${id}
+      SELECT u.id, u.email, u.is_admin, u.permissions, u.created_at,
+             COALESCE(r.balance, 1000) AS roulette_balance
+      FROM users u
+      LEFT JOIN roulette_balances r ON r.user_id = u.id
+      WHERE u.id = ${id}
     `;
     if (!rows[0]) {
       res.status(404).json({ error: 'User not found' });
