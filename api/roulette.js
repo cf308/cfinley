@@ -1,5 +1,6 @@
-const { sql, ensureSchema } = require('../lib/_db');
+const { ensureSchema } = require('../lib/_db');
 const { getCurrentUser, hasApp } = require('../lib/_session');
+const { getBalance, setBalance } = require('../lib/_casino');
 
 const RED_NUMBERS = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
 
@@ -58,16 +59,6 @@ function validateBet(bet) {
   return true;
 }
 
-async function getBalance(userId) {
-  const { rows } = await sql`SELECT balance FROM roulette_balances WHERE user_id = ${userId}`;
-  if (rows[0]) return rows[0].balance;
-  await sql`
-    INSERT INTO roulette_balances (user_id, balance) VALUES (${userId}, 1000)
-    ON CONFLICT (user_id) DO NOTHING
-  `;
-  return 1000;
-}
-
 module.exports = async (req, res) => {
   await ensureSchema();
 
@@ -122,12 +113,7 @@ module.exports = async (req, res) => {
   });
 
   const newBalance = balance - totalStake + totalReturn;
-
-  await sql`
-    INSERT INTO roulette_balances (user_id, balance, updated_at)
-    VALUES (${user.id}, ${newBalance}, now())
-    ON CONFLICT (user_id) DO UPDATE SET balance = ${newBalance}, updated_at = now()
-  `;
+  await setBalance(user.id, newBalance);
 
   res.status(200).json({ number, color, results, balance: newBalance });
 };

@@ -802,6 +802,99 @@ td.app-checkbox-group {
   color: var(--ink-soft);
 }
 
+/* ---- Blackjack ---- */
+
+.bj-status {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  margin-bottom: 1.25rem;
+  min-height: 1.3em;
+}
+
+.bj-dealer {
+  margin-bottom: 1.5rem;
+}
+
+.bj-seats {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.bj-seat {
+  flex: 1;
+  min-width: 220px;
+  background: #16241c;
+  border: 1px solid #2a3f30;
+  padding: 1rem;
+  text-align: center;
+}
+
+.bj-seat-label {
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 0.6rem;
+}
+
+.bj-seat-label span {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+
+.bj-hand {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  min-height: 78px;
+  flex-wrap: wrap;
+}
+
+.bj-card {
+  width: 50px;
+  height: 72px;
+  border-radius: 4px;
+  background: #ecebe7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.1;
+}
+
+.bj-card.red {
+  color: #b23b3b;
+}
+
+.bj-card.black {
+  color: #1b1c1f;
+}
+
+.bj-rank {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.bj-suit {
+  font-size: 1.1rem;
+}
+
+.bj-card.back {
+  background: repeating-linear-gradient(45deg, #16181c, #16181c 5px, #1f2127 5px, #1f2127 10px);
+  border: 2px solid #d9a441;
+}
+
+.bj-bet-line {
+  margin-top: 0.6rem;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  min-height: 1.2em;
+}
+
 /* ---- Roulette ---- */
 
 .rl-hud {
@@ -956,6 +1049,10 @@ td.app-checkbox-group {
   gap: 1rem;
   flex-wrap: wrap;
   margin-top: 1.5rem;
+}
+
+.rl-controls[hidden] {
+  display: none;
 }
 
 .rl-chips {

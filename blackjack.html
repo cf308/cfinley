@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C Finley — Blackjack</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="status.js" defer></script>
+</head>
+<body>
+  <div class="page">
+    <main class="admin-main">
+      <div class="admin-wrap" id="content" hidden>
+        <div class="admin-header">
+          <div class="doc-wordmark">C&nbsp;FINLEY</div>
+          <div class="admin-header-actions">
+            <a href="dashboard.html">Home</a>
+            <a href="#" id="logout-link">Log out</a>
+          </div>
+        </div>
+
+        <h1 class="admin-title">Blackjack</h1>
+
+        <div class="rl-hud">
+          <span id="bj-balance">Balance 0</span>
+        </div>
+
+        <section class="admin-section" id="lobby-section">
+          <div class="c4-lobby">
+            <div class="c4-lobby-option">
+              <button class="portal-btn admin-btn" id="create-btn">New Table</button>
+            </div>
+            <div class="c4-lobby-option">
+              <form id="join-form" class="admin-form">
+                <div class="field">
+                  <label for="join-code">Table Code</label>
+                  <input type="text" id="join-code" maxlength="4" autocomplete="off" autocapitalize="characters" placeholder="e.g. 7F3K" style="text-transform:uppercase;">
+                </div>
+                <button type="submit" class="portal-btn admin-btn">Join Table</button>
+              </form>
+            </div>
+          </div>
+          <p class="portal-message" id="lobby-message" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="admin-section" id="game-section" hidden>
+          <div class="bj-status" id="bj-status"></div>
+
+          <div class="bj-seat bj-dealer">
+            <div class="bj-seat-label">Dealer <span id="bj-dealer-total"></span></div>
+            <div class="bj-hand" id="bj-dealer-hand"></div>
+          </div>
+
+          <div class="bj-seats">
+            <div class="bj-seat" id="bj-you-seat">
+              <div class="bj-seat-label">You <span id="bj-you-total"></span></div>
+              <div class="bj-hand" id="bj-you-hand"></div>
+              <div class="bj-bet-line" id="bj-you-bet"></div>
+            </div>
+            <div class="bj-seat" id="bj-opp-seat">
+              <div class="bj-seat-label">Opponent <span id="bj-opp-total"></span></div>
+              <div class="bj-hand" id="bj-opp-hand"></div>
+              <div class="bj-bet-line" id="bj-opp-bet"></div>
+            </div>
+          </div>
+
+          <div class="rl-controls" id="bj-bet-controls" hidden>
+            <div class="rl-chips" id="bj-chips"></div>
+            <button class="portal-btn admin-btn" id="bj-bet-btn" type="button">Place Bet</button>
+          </div>
+
+          <div class="rl-controls" id="bj-turn-controls" hidden>
+            <button class="portal-btn admin-btn" id="bj-hit-btn" type="button">Hit</button>
+            <button class="portal-btn admin-btn" id="bj-stand-btn" type="button">Stand</button>
+          </div>
+
+          <p class="portal-message" id="bj-message" role="status" aria-live="polite"></p>
+          <p class="c4-code-line" id="bj-code-line"></p>
+          <button class="portal-btn admin-btn" id="leave-btn" style="margin-top:1rem;">Leave Table</button>
+        </section>
+      </div>
+
+      <p class="portal-message" id="loading">Checking session&hellip;</p>
+    </main>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'cf-blackjack-code';
+    const CHIP_VALUES = [10, 25, 100, 500];
+    const SUIT_SYMBOLS = { S: '♠', H: '♥', D: '♦', C: '♣' };
+
+    let pollTimer = null;
+    let currentCode = null;
+    let selectedChip = CHIP_VALUES[0];
+
+    function cardEl(card) {
+      const el = document.createElement('div');
+      if (!card) {
+        el.className = 'bj-card back';
+        return el;
+      }
+      const red = card.s === 'H' || card.s === 'D';
+      el.className = 'bj-card ' + (red ? 'red' : 'black');
+      el.innerHTML = `<span class="bj-rank">${card.r}</span><span class="bj-suit">${SUIT_SYMBOLS[card.s]}</span>`;
+      return el;
+    }
+
+    function renderHand(elId, hand, hiddenCount) {
+      const el = document.getElementById(elId);
+      el.innerHTML = '';
+      hand.forEach((c) => el.appendChild(cardEl(c)));
+      for (let i = 0; i < (hiddenCount || 0); i++) el.appendChild(cardEl(null));
+    }
+
+    function buildChips() {
+      const wrap = document.getElementById('bj-chips');
+      wrap.innerHTML = '';
+      CHIP_VALUES.forEach((value) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'rl-chip' + (value === selectedChip ? ' selected' : '');
+        chip.textContent = value;
+        chip.addEventListener('click', () => {
+          selectedChip = value;
+          buildChips();
+        });
+        wrap.appendChild(chip);
+      });
+    }
+
+    function outcomeText(result) {
+      if (!result) return '';
+      if (result.outcome === 'blackjack') return 'Blackjack! +' + result.payout;
+      if (result.outcome === 'win') return 'Win +' + result.payout;
+      if (result.outcome === 'push') return 'Push';
+      return 'Lose';
+    }
+
+    function showLobby() {
+      clearInterval(pollTimer);
+      pollTimer = null;
+      currentCode = null;
+      localStorage.removeItem(STORAGE_KEY);
+      document.getElementById('lobby-section').hidden = false;
+      document.getElementById('game-section').hidden = true;
+    }
+
+    function renderState(state) {
+      document.getElementById('bj-balance').textContent = 'Balance ' + state.balance;
+      document.getElementById('bj-code-line').textContent = 'Table code: ' + state.code;
+
+      const you = state.you === 1 ? state.player1 : state.player2;
+      const opp = state.you === 1 ? state.player2 : state.player1;
+
+      renderHand('bj-dealer-hand', state.dealerHand, state.dealerHiddenCount);
+      document.getElementById('bj-dealer-total').textContent = state.dealerHidden ? '' : '(' + state.dealerTotal + ')';
+
+      renderHand('bj-you-hand', you.hand, 0);
+      document.getElementById('bj-you-total').textContent = you.hand.length ? '(' + you.total + ')' : '';
+      document.getElementById('bj-you-bet').textContent = you.bet ? 'Bet ' + you.bet : '';
+
+      renderHand('bj-opp-hand', opp.hand, 0);
+      document.getElementById('bj-opp-total').textContent = opp.hand.length ? '(' + opp.total + ')' : '';
+      document.getElementById('bj-opp-bet').textContent = opp.bet ? 'Bet ' + opp.bet : '';
+      document.getElementById('bj-opp-seat').hidden = !opp.present;
+
+      const statusEl = document.getElementById('bj-status');
+      const betControls = document.getElementById('bj-bet-controls');
+      const turnControls = document.getElementById('bj-turn-controls');
+      betControls.hidden = true;
+      turnControls.hidden = true;
+
+      if (state.status === 'waiting') {
+        statusEl.textContent = 'Waiting for an opponent to join with code ' + state.code + '…';
+      } else if (state.status === 'betting' || state.status === 'round_over') {
+        const resultLine = state.status === 'round_over' && state.lastResult ? outcomeText(state.lastResult[state.you === 1 ? 'player1' : 'player2']) + ' — ' : '';
+        if (you.bet != null && state.status === 'betting') {
+          statusEl.textContent = resultLine + 'Waiting for opponent to bet…';
+        } else {
+          statusEl.textContent = resultLine + 'Place your bet.';
+          betControls.hidden = false;
+        }
+      } else if (state.status === 'playing') {
+        if (state.yourTurn) {
+          statusEl.textContent = 'Your turn — hit or stand.';
+          turnControls.hidden = false;
+        } else if (state.turn === 'dealer') {
+          statusEl.textContent = 'Dealer playing…';
+        } else {
+          statusEl.textContent = "Opponent's turn…";
+        }
+      }
+    }
+
+    function refresh(code) {
+      fetch('/api/blackjack?code=' + encodeURIComponent(code))
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then(renderState)
+        .catch(() => {});
+    }
+
+    function enterGame(state) {
+      currentCode = state.code;
+      localStorage.setItem(STORAGE_KEY, state.code);
+      document.getElementById('lobby-section').hidden = true;
+      document.getElementById('game-section').hidden = false;
+      renderState(state);
+
+      clearInterval(pollTimer);
+      pollTimer = setInterval(() => refresh(state.code), 1500);
+    }
+
+    document.getElementById('create-btn').addEventListener('click', () => {
+      const messageEl = document.getElementById('lobby-message');
+      messageEl.textContent = '';
+      fetch('/api/blackjack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create' }),
+      })
+        .then(async (r) => {
+          const data = await r.json();
+          if (!r.ok) throw new Error(data.error || 'Unable to create table.');
+          return data;
+        })
+        .then(enterGame)
+        .catch((err) => {
+          messageEl.textContent = err.message;
+        });
+    });
+
+    document.getElementById('join-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const messageEl = document.getElementById('lobby-message');
+      messageEl.textContent = '';
+      const code = document.getElementById('join-code').value.trim().toUpperCase();
+      if (!code) return;
+
+      fetch('/api/blackjack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'join', code }),
+      })
+        .then(async (r) => {
+          const data = await r.json();
+          if (!r.ok) throw new Error(data.error || 'Unable to join table.');
+          return data;
+        })
+        .then(enterGame)
+        .catch((err) => {
+          messageEl.textContent = err.message;
+        });
+    });
+
+    document.getElementById('bj-bet-btn').addEventListener('click', () => {
+      const messageEl = document.getElementById('bj-message');
+      messageEl.textContent = '';
+      fetch('/api/blackjack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'bet', code: currentCode, amount: selectedChip }),
+      })
+        .then(async (r) => {
+          const data = await r.json();
+          if (!r.ok) throw new Error(data.error || 'Unable to place bet.');
+          return data;
+        })
+        .then(renderState)
+        .catch((err) => {
+          messageEl.textContent = err.message;
+        });
+    });
+
+    function act(action) {
+      fetch('/api/blackjack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, code: currentCode }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.code) renderState(data);
+        });
+    }
+
+    document.getElementById('bj-hit-btn').addEventListener('click', () => act('hit'));
+    document.getElementById('bj-stand-btn').addEventListener('click', () => act('stand'));
+    document.getElementById('leave-btn').addEventListener('click', showLobby);
+
+    document.getElementById('logout-link').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = 'index.html';
+    });
+
+    buildChips();
+
+    fetch('/api/me')
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data) => {
+        if (!data.isAdmin && !(data.permissions || []).includes('blackjack')) {
+          window.location.href = 'dashboard.html';
+          return;
+        }
+        document.getElementById('loading').hidden = true;
+        document.getElementById('content').hidden = false;
+
+        fetch('/api/blackjack')
+          .then((r) => (r.ok ? r.json() : Promise.reject()))
+          .then((data2) => {
+            document.getElementById('bj-balance').textContent = 'Balance ' + data2.balance;
+          })
+          .catch(() => {});
+
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          fetch('/api/blackjack?code=' + encodeURIComponent(saved))
+            .then((r) => (r.ok ? r.json() : Promise.reject()))
+            .then(enterGame)
+            .catch(() => localStorage.removeItem(STORAGE_KEY));
+        }
+      })
+      .catch(() => {
+        window.location.href = 'portal.html';
+      });
+  </script>
+  <script
+    src="https://assistloop.ai/assistloop-widget.js"
+    defer
+    onload="window.AssistLoopWidget && window.AssistLoopWidget.init({ agentId: 'dff24e88-a711-47ff-97f6-31c7b0dbaa6d' })"
+  ></script>
+</body>
+</html>
